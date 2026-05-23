@@ -1,0 +1,11 @@
+packages:
+  - 'packages/*'
+  - 'examples/*'
+
+minimumReleaseAge: 4320
+minimumReleaseAgeExclude:
+  - '@site-doctor/core'
+  - 'site-doctor'
+
+allowBuilds:
+  esbuild: true

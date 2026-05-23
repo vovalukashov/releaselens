@@ -1,0 +1,14 @@
+{
+  "name": "@site-doctor-example/basic",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Smoke fixture used by the site-doctor CLI integration test.",
+  "type": "module",
+  "scripts": {
+    "doctor": "site-doctor doctor"
+  },
+  "dependencies": {
+    "@site-doctor/core": "workspace:*",
+    "site-doctor": "workspace:*"
+  }
+}

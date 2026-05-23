@@ -1,0 +1,25 @@
+{
+  "name": "site-doctor-monorepo",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Release-safety checks for code-first Next.js marketing sites.",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@11.1.2",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "@types/node": "24.12.4",
+    "turbo": "2.9.14",
+    "typescript": "5.9.3"
+  }
+}
