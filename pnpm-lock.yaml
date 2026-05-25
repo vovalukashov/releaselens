@@ -20,16 +20,16 @@ importers:
 
   examples/basic:
     dependencies:
-      '@site-doctor/core':
+      '@contentops/core':
         specifier: workspace:*
         version: link:../../packages/core
-      site-doctor:
+      contentops:
         specifier: workspace:*
         version: link:../../packages/cli
 
   packages/cli:
     dependencies:
-      '@site-doctor/core':
+      '@contentops/core':
         specifier: workspace:*
         version: link:../core
       commander:

@@ -1,7 +1,7 @@
 {
-  "name": "@site-doctor/core",
+  "name": "@contentops/core",
   "version": "0.0.0",
-  "description": "Config schema, types, and check runner for site-doctor.",
+  "description": "Config schema, types, and check runner for contentops.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

@@ -1,4 +1,4 @@
-import type { SiteDoctorConfig } from './config.js';
+import type { ContentOpsConfig } from './config.js';
 
 export type Severity = 'error' | 'warning' | 'info';
 
@@ -12,7 +12,7 @@ export interface CheckResult {
 }
 
 export interface CheckContext {
-  config: SiteDoctorConfig;
+  config: ContentOpsConfig;
   cwd: string;
 }
 

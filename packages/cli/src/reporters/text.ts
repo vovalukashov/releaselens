@@ -1,4 +1,4 @@
-import type { CheckResult, RunReport, Severity } from '@site-doctor/core';
+import type { CheckResult, RunReport, Severity } from '@contentops/core';
 import pc from 'picocolors';
 
 const SEVERITY_ICON: Record<Severity, string> = {
@@ -9,7 +9,7 @@ const SEVERITY_ICON: Record<Severity, string> = {
 
 export function textReport(report: RunReport, configPath: string): string {
   const lines: string[] = [];
-  lines.push(`${pc.bold('site-doctor')} ${pc.dim(`(config: ${configPath})`)}`);
+  lines.push(`${pc.bold('contentops')} ${pc.dim(`(config: ${configPath})`)}`);
   lines.push('');
 
   if (report.results.length === 0) {

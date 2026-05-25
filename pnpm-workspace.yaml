@@ -4,8 +4,8 @@ packages:
 
 minimumReleaseAge: 4320
 minimumReleaseAgeExclude:
-  - '@site-doctor/core'
-  - 'site-doctor'
+  - '@contentops/core'
+  - 'contentops'
 
 allowBuilds:
   esbuild: true

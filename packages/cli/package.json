@@ -1,11 +1,11 @@
 {
-  "name": "site-doctor",
+  "name": "contentops",
   "version": "0.0.0",
   "description": "Release-safety checks for code-first Next.js marketing sites.",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "site-doctor": "./dist/index.js"
+    "contentops": "./dist/index.js"
   },
   "main": "./dist/index.js",
   "files": [
@@ -20,7 +20,7 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
-    "@site-doctor/core": "workspace:*",
+    "@contentops/core": "workspace:*",
     "commander": "13.1.0",
     "jiti": "2.7.0",
     "picocolors": "1.1.1"

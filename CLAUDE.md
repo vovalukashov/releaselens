@@ -4,9 +4,9 @@ Project guidance for AI assistants working in this repository.
 
 ## What this project is
 
-`site-doctor` — a developer-first OSS CLI and config schema that verifies release safety of code-first Next.js marketing sites directly in the repo and CI. Paid cloud (later) adds private history, baselines, waivers, PR summaries, and audit trail.
+`contentops` — a developer-first OSS CLI and config schema that verifies release safety of code-first Next.js marketing sites directly in the repo and CI. Paid cloud (later) adds private history, baselines, waivers, PR summaries, and audit trail.
 
-Positioning: **release-safety layer for code-first marketing sites**, not an SEO checker, not a monitoring tool, not a CMS. Roadmap and full thesis live in the Linear project "CI Doctor for Next.js marketing sites".
+Positioning: **release-safety layer for code-first marketing sites**, not an SEO checker, not a monitoring tool, not a CMS. Roadmap and full thesis live in the Linear project "ContentOps Doctor".
 
 ## Language policy
 
@@ -55,8 +55,8 @@ pnpm -w lint
 ```
 .
 ├── packages/
-│   ├── core/           # @site-doctor/core — schema, types, runner, default checks
-│   └── cli/            # site-doctor       — CLI binary
+│   ├── core/           # @contentops/core — schema, types, runner, default checks
+│   └── cli/            # contentops       — CLI binary
 └── examples/
     └── basic/          # smoke fixture for the CLI
 ```
@@ -67,7 +67,7 @@ New first-party packages go under `packages/*`. Demo or fixture apps go under `e
 
 - ESM only. No CommonJS in source.
 - Public API surface of each package is its `src/index.ts`. Do not import from deep paths across packages.
-- Public types are exported from `@site-doctor/core`. Adapters and the CLI consume them.
+- Public types are exported from `@contentops/core`. Adapters and the CLI consume them.
 - Default to writing no comments. Only add a comment when the *why* is non-obvious. Never document *what* well-named code already says.
 - No backwards-compatibility shims, no unused re-exports, no half-finished branches.
 - Validate at boundaries (CLI args, config files, external adapter inputs). Trust internal calls.
@@ -84,7 +84,7 @@ New first-party packages go under `packages/*`. Demo or fixture apps go under `e
 
 ## Linear workflow
 
-- Project: `CI Doctor for Next.js marketing sites`.
+- Project: `ContentOps Doctor`.
 - Team: `VOV`.
 - One epic per week (`VOV-10` Week 1, `VOV-11` Week 2, `VOV-12` Week 3, `VOV-13` Week 4).
 - Sub-issues live under their week's epic via `parentId`.

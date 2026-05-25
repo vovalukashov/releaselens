@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { defineSiteDoctor, runChecks } from '../src/index.js';
+import { defineContentOps, runChecks } from '../src/index.js';
 
 describe('runChecks', () => {
   it('passes on a clean config', async () => {
-    const cfg = defineSiteDoctor({
+    const cfg = defineContentOps({
       locales: ['en'],
       defaultLocale: 'en',
       routes: [
@@ -21,7 +21,7 @@ describe('runChecks', () => {
   });
 
   it('warns when a route is bound to a CMS collection but has no slug', async () => {
-    const cfg = defineSiteDoctor({
+    const cfg = defineContentOps({
       cms: 'payload',
       locales: ['en'],
       defaultLocale: 'en',
@@ -43,7 +43,7 @@ describe('runChecks', () => {
   });
 
   it('errors when a route requires a locale not present in the top-level locales list', async () => {
-    const cfg = defineSiteDoctor({
+    const cfg = defineContentOps({
       locales: ['en'],
       defaultLocale: 'en',
       routes: [
@@ -66,7 +66,7 @@ describe('runChecks', () => {
   });
 
   it('warns when a route declares no required metadata', async () => {
-    const cfg = defineSiteDoctor({
+    const cfg = defineContentOps({
       locales: ['en'],
       defaultLocale: 'en',
       routes: [{ id: 'naked', path: '/naked' }],

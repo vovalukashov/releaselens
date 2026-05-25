@@ -61,7 +61,7 @@ export const RouteSchema = z.object({
 });
 export type Route = z.infer<typeof RouteSchema>;
 
-export const SiteDoctorConfigSchema = z
+export const ContentOpsConfigSchema = z
   .object({
     framework: FrameworkSchema.default('next'),
     cms: CmsAdapterSchema.default('none'),
@@ -92,11 +92,11 @@ export const SiteDoctorConfigSchema = z
     }
   });
 
-export type SiteDoctorConfigInput = z.input<typeof SiteDoctorConfigSchema>;
-export type SiteDoctorConfig = z.output<typeof SiteDoctorConfigSchema>;
+export type ContentOpsConfigInput = z.input<typeof ContentOpsConfigSchema>;
+export type ContentOpsConfig = z.output<typeof ContentOpsConfigSchema>;
 
-export function defineSiteDoctor(
-  config: SiteDoctorConfigInput,
-): SiteDoctorConfig {
-  return SiteDoctorConfigSchema.parse(config);
+export function defineContentOps(
+  config: ContentOpsConfigInput,
+): ContentOpsConfig {
+  return ContentOpsConfigSchema.parse(config);
 }

@@ -1,4 +1,4 @@
-import type { SiteDoctorConfig } from './config.js';
+import type { ContentOpsConfig } from './config.js';
 import { defaultChecks } from './checks/index.js';
 import type {
   CheckContext,
@@ -9,7 +9,7 @@ import type {
 } from './types.js';
 
 export async function runChecks(
-  config: SiteDoctorConfig,
+  config: ContentOpsConfig,
   opts: RunOptions = {},
 ): Promise<RunReport> {
   const checks = opts.checks ?? defaultChecks;

@@ -1,14 +1,14 @@
 {
-  "name": "@site-doctor-example/basic",
+  "name": "@contentops-example/basic",
   "version": "0.0.0",
   "private": true,
-  "description": "Smoke fixture used by the site-doctor CLI integration test.",
+  "description": "Smoke fixture used by the contentops CLI integration test.",
   "type": "module",
   "scripts": {
-    "doctor": "site-doctor doctor"
+    "doctor": "contentops doctor"
   },
   "dependencies": {
-    "@site-doctor/core": "workspace:*",
-    "site-doctor": "workspace:*"
+    "@contentops/core": "workspace:*",
+    "contentops": "workspace:*"
   }
 }

@@ -1,6 +1,6 @@
-import { defineSiteDoctor } from '@site-doctor/core';
+import { defineContentOps } from '@contentops/core';
 
-export default defineSiteDoctor({
+export default defineContentOps({
   framework: 'next',
   cms: 'payload',
   hosting: 'vercel',

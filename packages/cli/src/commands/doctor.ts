@@ -1,4 +1,4 @@
-import { runChecks } from '@site-doctor/core';
+import { runChecks } from '@contentops/core';
 import { ConfigNotFoundError, loadConfig } from '../load-config.js';
 import { jsonReport } from '../reporters/json.js';
 import { textReport } from '../reporters/text.js';

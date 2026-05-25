@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { SiteDoctorConfigSchema, defineSiteDoctor } from '../src/index.js';
+import { ContentOpsConfigSchema, defineContentOps } from '../src/index.js';
 
-describe('SiteDoctorConfigSchema', () => {
+describe('ContentOpsConfigSchema', () => {
   it('accepts a valid config', () => {
-    const cfg = defineSiteDoctor({
+    const cfg = defineContentOps({
       framework: 'next',
       cms: 'payload',
       hosting: 'vercel',
@@ -24,7 +24,7 @@ describe('SiteDoctorConfigSchema', () => {
   });
 
   it('applies sensible defaults when fields are omitted', () => {
-    const cfg = defineSiteDoctor({
+    const cfg = defineContentOps({
       locales: ['en'],
       defaultLocale: 'en',
     });
@@ -36,7 +36,7 @@ describe('SiteDoctorConfigSchema', () => {
 
   it('rejects when defaultLocale is not present in locales', () => {
     expect(() =>
-      SiteDoctorConfigSchema.parse({
+      ContentOpsConfigSchema.parse({
         locales: ['en'],
         defaultLocale: 'es',
       }),
@@ -45,7 +45,7 @@ describe('SiteDoctorConfigSchema', () => {
 
   it('rejects routes whose path does not start with /', () => {
     expect(() =>
-      SiteDoctorConfigSchema.parse({
+      ContentOpsConfigSchema.parse({
         locales: ['en'],
         defaultLocale: 'en',
         routes: [{ id: 'bad', path: 'pricing' }],
@@ -55,7 +55,7 @@ describe('SiteDoctorConfigSchema', () => {
 
   it('rejects duplicate route ids', () => {
     expect(() =>
-      SiteDoctorConfigSchema.parse({
+      ContentOpsConfigSchema.parse({
         locales: ['en'],
         defaultLocale: 'en',
         routes: [
