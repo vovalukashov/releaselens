@@ -8,3 +8,4 @@ export * from './analytics/parse-tracking-calls.js';
 export * from './storage/fingerprint.js';
 export * from './storage/baseline.js';
 export * from './storage/dismissed.js';
+export * from './ai/explain.js';

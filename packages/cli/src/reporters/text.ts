@@ -27,6 +27,13 @@ export function textReport(report: RunReport, configPath: string): string {
       lines.push(
         `  ${SEVERITY_ICON[r.severity]} ${pc.dim(r.checkId)}${loc}${conf} ${r.message}`,
       );
+      if (r.explanation) {
+        for (const explainLine of r.explanation.split('\n')) {
+          lines.push(`      ${pc.dim('AI:')} ${pc.dim(explainLine)}`);
+        }
+      } else if (r.explanationError) {
+        lines.push(`      ${pc.dim(`AI: ${r.explanationError}`)}`);
+      }
     }
     lines.push('');
   }

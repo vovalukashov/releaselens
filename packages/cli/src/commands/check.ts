@@ -1,6 +1,6 @@
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { runChecks, writeBaseline } from '@releaselens/core';
+import { explainFindings, runChecks, writeBaseline } from '@releaselens/core';
 import pc from 'picocolors';
 import { ConfigNotFoundError, loadConfig } from '../load-config.js';
 import { jsonReport } from '../reporters/json.js';
@@ -13,6 +13,7 @@ export interface CheckOptions {
   json: boolean;
   report: boolean | string;
   updateBaseline: boolean;
+  explain: boolean;
 }
 
 const DEFAULT_REPORT_PATH = 'releaselens-report.md';
@@ -45,6 +46,16 @@ export async function checkCommand(opts: CheckOptions): Promise<void> {
       `${pc.green('Baseline updated')} ${pc.bold(baselinePath)} (${fingerprints.length} fingerprints).\n`,
     );
     return;
+  }
+
+  if (opts.explain) {
+    const nonInfo = report.results.filter((r) => r.severity !== 'info');
+    const explained = await explainFindings(nonInfo);
+    const explainedById = new Map(explained.map((e) => [e.fingerprint, e]));
+    report.results = report.results.map((r) => {
+      const match = r.fingerprint ? explainedById.get(r.fingerprint) : undefined;
+      return match ?? r;
+    });
   }
 
   if (opts.json) {

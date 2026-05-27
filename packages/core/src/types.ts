@@ -13,6 +13,8 @@ export interface CheckResult {
   locale?: string;
   data?: Record<string, unknown>;
   fingerprint?: string;
+  explanation?: string;
+  explanationError?: string;
 }
 
 export interface CheckContext {

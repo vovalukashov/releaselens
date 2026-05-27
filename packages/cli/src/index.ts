@@ -41,6 +41,11 @@ program
     'Snapshot current findings to .releaselens/baseline.json. Subsequent runs ignore these fingerprints.',
     false,
   )
+  .option(
+    '--explain',
+    'Attach AI-generated explanations to non-info findings (requires AI_GATEWAY_API_KEY).',
+    false,
+  )
   .action(
     async (opts: {
       config?: string;
@@ -48,6 +53,7 @@ program
       json: boolean;
       report: boolean | string;
       updateBaseline: boolean;
+      explain: boolean;
     }) => {
       await checkCommand({
         ...(opts.config ? { configPath: opts.config } : {}),
@@ -55,6 +61,7 @@ program
         json: opts.json,
         report: opts.report,
         updateBaseline: opts.updateBaseline,
+        explain: opts.explain,
       });
     },
   );

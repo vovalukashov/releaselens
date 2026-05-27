@@ -47,6 +47,15 @@ export function markdownReport(
       lines.push(
         `- ${SEVERITY_BADGE[r.severity]} **${SEVERITY_LABEL[r.severity]}** · \`${r.checkId}\`${loc}${conf} — ${escapeMarkdown(r.message)}`,
       );
+      if (r.explanation) {
+        const collapsed = r.explanation
+          .split('\n')
+          .map((line) => `  > ${escapeMarkdown(line)}`)
+          .join('\n');
+        lines.push(`  <details><summary>AI explanation</summary>\n\n${collapsed}\n\n  </details>`);
+      } else if (r.explanationError) {
+        lines.push(`  > _AI: ${escapeMarkdown(r.explanationError)}_`);
+      }
     }
     lines.push('');
   }
