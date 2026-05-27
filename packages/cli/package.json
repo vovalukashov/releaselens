@@ -1,11 +1,11 @@
 {
-  "name": "contentops",
+  "name": "releaselens",
   "version": "0.0.0",
   "description": "Release-safety checks for code-first Next.js marketing sites.",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "contentops": "./dist/index.js"
+    "releaselens": "./dist/index.js"
   },
   "main": "./dist/index.js",
   "files": [
@@ -20,7 +20,7 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
-    "@contentops/core": "workspace:*",
+    "@releaselens/core": "workspace:*",
     "commander": "13.1.0",
     "jiti": "2.7.0",
     "picocolors": "1.1.1"

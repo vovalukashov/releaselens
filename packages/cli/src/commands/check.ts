@@ -1,15 +1,15 @@
-import { runChecks } from '@contentops/core';
+import { runChecks } from '@releaselens/core';
 import { ConfigNotFoundError, loadConfig } from '../load-config.js';
 import { jsonReport } from '../reporters/json.js';
 import { textReport } from '../reporters/text.js';
 
-export interface DoctorOptions {
+export interface CheckOptions {
   configPath?: string;
   ci: boolean;
   json: boolean;
 }
 
-export async function doctorCommand(opts: DoctorOptions): Promise<void> {
+export async function checkCommand(opts: CheckOptions): Promise<void> {
   let loaded;
   try {
     loaded = await loadConfig(

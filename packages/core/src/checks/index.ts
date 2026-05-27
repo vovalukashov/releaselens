@@ -1,16 +1,19 @@
 import type { Check } from '../types.js';
+import { eventTargetValidCheck } from './event-target-valid.js';
+import { formReferencesRouteCheck } from './form-references-route.js';
 import { requiredLocalesExistCheck } from './required-locales-exist.js';
-import { requiredMetadataExistsCheck } from './required-metadata-exists.js';
-import { routeHasCmsEntryCheck } from './route-has-cms-entry.js';
+import { seoMetadataDeclaredCheck } from './seo-metadata-declared.js';
 
 export const defaultChecks: Check[] = [
-  routeHasCmsEntryCheck,
   requiredLocalesExistCheck,
-  requiredMetadataExistsCheck,
+  formReferencesRouteCheck,
+  eventTargetValidCheck,
+  seoMetadataDeclaredCheck,
 ];
 
 export {
+  eventTargetValidCheck,
+  formReferencesRouteCheck,
   requiredLocalesExistCheck,
-  requiredMetadataExistsCheck,
-  routeHasCmsEntryCheck,
+  seoMetadataDeclaredCheck,
 };

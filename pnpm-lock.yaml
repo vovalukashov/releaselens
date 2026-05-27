@@ -20,16 +20,16 @@ importers:
 
   examples/basic:
     dependencies:
-      '@contentops/core':
+      '@releaselens/core':
         specifier: workspace:*
         version: link:../../packages/core
-      contentops:
+      releaselens:
         specifier: workspace:*
         version: link:../../packages/cli
 
   packages/cli:
     dependencies:
-      '@contentops/core':
+      '@releaselens/core':
         specifier: workspace:*
         version: link:../core
       commander:

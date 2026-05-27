@@ -4,8 +4,8 @@ packages:
 
 minimumReleaseAge: 4320
 minimumReleaseAgeExclude:
-  - '@contentops/core'
-  - 'contentops'
+  - '@releaselens/core'
+  - 'releaselens'
 
 allowBuilds:
   esbuild: true

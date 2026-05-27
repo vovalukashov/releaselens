@@ -1,7 +1,7 @@
 {
-  "name": "@contentops/core",
+  "name": "@releaselens/core",
   "version": "0.0.0",
-  "description": "Config schema, types, and check runner for contentops.",
+  "description": "Config schema, types, and check runner for releaselens.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

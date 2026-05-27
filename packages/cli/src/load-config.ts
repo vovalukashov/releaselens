@@ -2,14 +2,14 @@ import { existsSync, statSync } from 'node:fs';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { createJiti } from 'jiti';
 import {
-  ContentOpsConfigSchema,
-  type ContentOpsConfig,
-} from '@contentops/core';
+  ReleaseLensConfigSchema,
+  type ReleaseLensConfig,
+} from '@releaselens/core';
 
 const CONFIG_NAMES = [
-  'contentops.config.ts',
-  'contentops.config.mjs',
-  'contentops.config.js',
+  'releaselens.config.ts',
+  'releaselens.config.mjs',
+  'releaselens.config.js',
 ] as const;
 
 export interface LoadConfigOptions {
@@ -18,14 +18,14 @@ export interface LoadConfigOptions {
 }
 
 export interface LoadedConfig {
-  config: ContentOpsConfig;
+  config: ReleaseLensConfig;
   path: string;
 }
 
 export class ConfigNotFoundError extends Error {
   constructor(public readonly cwd: string) {
     super(
-      `No contentops.config.{ts,mjs,js} found starting from ${cwd}. Run "contentops init" to scaffold one.`,
+      `No releaselens.config.{ts,mjs,js} found starting from ${cwd}. Run "releaselens init" to scaffold one.`,
     );
     this.name = 'ConfigNotFoundError';
   }
@@ -45,7 +45,7 @@ export async function loadConfig(
 
   const jiti = createJiti(filePath, { interopDefault: true });
   const raw = await jiti.import(filePath, { default: true });
-  const config = ContentOpsConfigSchema.parse(raw);
+  const config = ReleaseLensConfigSchema.parse(raw);
   return { config, path: filePath };
 }
 

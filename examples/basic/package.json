@@ -1,14 +1,14 @@
 {
-  "name": "@contentops-example/basic",
+  "name": "@releaselens-example/basic",
   "version": "0.0.0",
   "private": true,
-  "description": "Smoke fixture used by the contentops CLI integration test.",
+  "description": "Smoke fixture used by the releaselens CLI integration test.",
   "type": "module",
   "scripts": {
-    "doctor": "contentops doctor"
+    "doctor": "releaselens doctor"
   },
   "dependencies": {
-    "@contentops/core": "workspace:*",
-    "contentops": "workspace:*"
+    "@releaselens/core": "workspace:*",
+    "releaselens": "workspace:*"
   }
 }

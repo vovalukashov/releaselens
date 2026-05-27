@@ -9,49 +9,46 @@ const here = dirname(fileURLToPath(import.meta.url));
 const CLI = resolve(here, '../dist/index.js');
 const FIXTURE = resolve(
   here,
-  '../../../examples/basic/contentops.config.ts',
+  '../../../examples/basic/releaselens.config.ts',
 );
 
 function runCli(args: string[]) {
   return spawnSync('node', [CLI, ...args], { encoding: 'utf8' });
 }
 
-describe('contentops CLI', () => {
-  it('runs doctor against the basic fixture in text mode', () => {
-    const result = runCli(['doctor', '--config', FIXTURE]);
+describe('releaselens CLI', () => {
+  it('runs check against the basic fixture in text mode', () => {
+    const result = runCli(['check', '--config', FIXTURE]);
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain('contentops');
+    expect(result.stdout).toContain('releaselens');
     expect(result.stdout).toMatch(/Summary/);
   });
 
   it('emits valid JSON in --json mode', () => {
-    const result = runCli(['doctor', '--config', FIXTURE, '--json']);
+    const result = runCli(['check', '--config', FIXTURE, '--json']);
     expect(result.status).toBe(0);
     const parsed = JSON.parse(result.stdout) as {
       passed: boolean;
       counts: Record<string, number>;
     };
     expect(parsed).toHaveProperty('passed');
-    expect(parsed.counts).toHaveProperty('error');
+    expect(parsed.counts).toHaveProperty('critical');
   });
 
   it('exits non-zero with --ci on a config that violates checks', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'contentops-broken-'));
-    const broken = join(dir, 'contentops.config.mjs');
+    const dir = mkdtempSync(join(tmpdir(), 'releaselens-broken-'));
+    const broken = join(dir, 'releaselens.config.mjs');
     writeFileSync(
       broken,
       `export default {
   framework: 'next',
-  cms: 'none',
-  hosting: 'vercel',
   locales: ['en'],
   defaultLocale: 'en',
   routes: [
     {
       id: 'broken',
       path: '/broken',
-      requiredLocales: ['en', 'fr'],
-      requiredMetadata: ['title'],
+      locales: ['en', 'fr'],
     },
   ],
 };
@@ -59,12 +56,12 @@ describe('contentops CLI', () => {
       'utf8',
     );
 
-    const result = runCli(['doctor', '--config', broken, '--ci']);
+    const result = runCli(['check', '--config', broken, '--ci']);
     expect(result.status).toBe(1);
   });
 
   it('init creates a config file and refuses to overwrite on the second invocation', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'contentops-init-'));
+    const dir = mkdtempSync(join(tmpdir(), 'releaselens-init-'));
     const first = runCli(['init', '--dir', dir]);
     expect(first.status).toBe(0);
     expect(first.stdout).toContain('Created');

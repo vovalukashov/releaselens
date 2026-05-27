@@ -2,20 +2,34 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import pc from 'picocolors';
 
-const TEMPLATE = `import { defineContentOps } from '@contentops/core';
+const TEMPLATE = `import { defineReleaseLens } from '@releaselens/core';
 
-export default defineContentOps({
+export default defineReleaseLens({
   framework: 'next',
-  cms: 'none',
-  hosting: 'vercel',
+  previewUrl: { source: 'vercel' },
   locales: ['en', 'es'],
   defaultLocale: 'en',
   routes: [
     {
-      id: 'home',
-      path: '/',
-      requiredLocales: ['en', 'es'],
-      requiredMetadata: ['title', 'description', 'canonical', 'hreflang'],
+      id: 'pricing',
+      path: '/pricing',
+      businessImpact: 'high',
+      locales: ['en', 'es'],
+    },
+  ],
+  forms: [
+    {
+      id: 'pricing-lead',
+      onRoute: 'pricing',
+      selector: '[data-form=pricing-lead]',
+      successState: { type: 'route', value: '/thank-you' },
+    },
+  ],
+  events: [
+    {
+      name: 'pricing_form_submit',
+      onForm: 'pricing-lead',
+      consent: 'analytics',
     },
   ],
 });
@@ -26,11 +40,11 @@ export interface InitOptions {
 }
 
 export async function initCommand(opts: InitOptions): Promise<void> {
-  const target = resolve(opts.dir, 'contentops.config.ts');
+  const target = resolve(opts.dir, 'releaselens.config.ts');
 
   if (existsSync(target)) {
     process.stderr.write(
-      `${pc.yellow('contentops.config.ts already exists at')} ${pc.bold(target)}\n`,
+      `${pc.yellow('releaselens.config.ts already exists at')} ${pc.bold(target)}\n`,
     );
     return;
   }
@@ -39,6 +53,6 @@ export async function initCommand(opts: InitOptions): Promise<void> {
   writeFileSync(target, TEMPLATE, 'utf8');
 
   process.stdout.write(
-    `${pc.green('Created')} ${pc.bold(target)}\nNext: ${pc.cyan('npx contentops doctor')}\n`,
+    `${pc.green('Created')} ${pc.bold(target)}\nNext: ${pc.cyan('npx releaselens check')}\n`,
   );
 }

@@ -4,9 +4,9 @@ Project guidance for AI assistants working in this repository.
 
 ## What this project is
 
-`contentops` — a developer-first OSS CLI and config schema that verifies release safety of code-first Next.js marketing sites directly in the repo and CI. Paid cloud (later) adds private history, baselines, waivers, PR summaries, and audit trail.
+`releaselens` — a developer-first OSS CLI and config schema that verifies release safety of code-first Next.js marketing sites directly in the repo and CI. Paid cloud (later) adds private history, baselines, waivers, PR summaries, and audit trail.
 
-Positioning: **release-safety layer for code-first marketing sites**, not an SEO checker, not a monitoring tool, not a CMS. Roadmap and full thesis live in the Linear project "ContentOps Doctor".
+Positioning: **release-safety layer for code-first marketing sites**, not an SEO checker, not a monitoring tool, not a CMS. Roadmap and full thesis live in the Linear project "ReleaseLens".
 
 ## Language policy
 
@@ -55,8 +55,8 @@ pnpm -w lint
 ```
 .
 ├── packages/
-│   ├── core/           # @contentops/core — schema, types, runner, default checks
-│   └── cli/            # contentops       — CLI binary
+│   ├── core/           # @releaselens/core — schema, types, runner, default checks
+│   └── cli/            # releaselens       — CLI binary
 └── examples/
     └── basic/          # smoke fixture for the CLI
 ```
@@ -67,7 +67,7 @@ New first-party packages go under `packages/*`. Demo or fixture apps go under `e
 
 - ESM only. No CommonJS in source.
 - Public API surface of each package is its `src/index.ts`. Do not import from deep paths across packages.
-- Public types are exported from `@contentops/core`. Adapters and the CLI consume them.
+- Public types are exported from `@releaselens/core`. Adapters and the CLI consume them.
 - Default to writing no comments. Only add a comment when the *why* is non-obvious. Never document *what* well-named code already says.
 - No backwards-compatibility shims, no unused re-exports, no half-finished branches.
 - Validate at boundaries (CLI args, config files, external adapter inputs). Trust internal calls.
@@ -84,10 +84,11 @@ New first-party packages go under `packages/*`. Demo or fixture apps go under `e
 
 ## Linear workflow
 
-- Project: `ContentOps Doctor`.
+- Project: `ReleaseLens`.
 - Team: `VOV`.
-- One epic per week (`VOV-10` Week 1, `VOV-11` Week 2, `VOV-12` Week 3, `VOV-13` Week 4).
-- Sub-issues live under their week's epic via `parentId`.
+- Active epics: `VOV-40` Month 1, `VOV-41` Month 2, `VOV-42` Month 3, `VOV-43` Month 4, `VOV-44` Month 5, `VOV-45` Month 6 (Day-180 decision point).
+- Pre-pivot epics (`VOV-10` через `VOV-39`) cancelled with reason notes. Do not revive without reopening.
+- Sub-issues live under their month's epic via `parentId`.
 - Status flow: `Backlog` → `Todo` → `In Progress` → `Done`.
 - Update status on Linear as work begins and completes.
 

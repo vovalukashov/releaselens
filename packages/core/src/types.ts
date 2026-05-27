@@ -1,24 +1,29 @@
-import type { ContentOpsConfig } from './config.js';
+import type { ReleaseLensConfig, Severity, Confidence } from './config.js';
 
-export type Severity = 'error' | 'warning' | 'info';
+export type { Severity, Confidence };
 
 export interface CheckResult {
   checkId: string;
   severity: Severity;
+  confidence: Confidence;
   message: string;
   route?: string;
+  form?: string;
+  event?: string;
   locale?: string;
   data?: Record<string, unknown>;
 }
 
 export interface CheckContext {
-  config: ContentOpsConfig;
+  config: ReleaseLensConfig;
   cwd: string;
 }
 
 export interface Check {
   id: string;
   description: string;
+  defaultSeverity: Severity;
+  defaultConfidence: Confidence;
   run(ctx: CheckContext): Promise<CheckResult[]> | CheckResult[];
 }
 

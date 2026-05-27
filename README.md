@@ -1,44 +1,57 @@
-# ContentOps Doctor
+# ReleaseLens
 
-> Release-safety checks for code-first Next.js marketing sites.
+> **Tell me what this PR breaks before it ships.**
 
-`contentops` is a developer-first CLI and config schema that verifies the operational contract of a marketing site directly in the repo and in CI. It answers a single question on every pull request: **is it safe to merge and ship this change to the marketing site?**
+`releaselens` is a self-serve, OSS pre-merge regression detector for Next.js revenue pages. On every pull request it tells you which routes, forms, analytics events, locales, or SEO tags this change can break — before the merge button.
 
-It is _not_ an SEO checker, _not_ a monitoring tool, _not_ a CMS. It is a thin policy and evidence layer on top of the stack you already use.
+Not an AI code review. Not synthetic monitoring. Not visual regression. Not a CMS or observability backend. A thin orchestrator that runs targeted checks on revenue-critical web surfaces.
 
 ## Status
 
-Pre-alpha. Week 1 of the validation roadmap — CLI skeleton, config schema, three stub checks. Real Next.js + Payload introspection lands in Week 2.
+Pre-alpha — Month 1 of 6-month execution. Static-only checks. GitHub Action lands Month 2. Real Next.js metadata parsing, form smoke, and analytics contract validation roll in across Months 1–4. See the Linear project for the live roadmap.
 
 ## Quickstart
 
 ```bash
-pnpm add -D contentops          # placeholder, not published yet
-npx contentops init             # scaffold contentops.config.ts
-npx contentops doctor           # run checks and print a report
-npx contentops doctor --ci      # exit non-zero on errors (for CI)
-npx contentops doctor --json    # machine-readable output
+pnpm add -D releaselens          # placeholder, not published yet
+npx releaselens init             # scaffold releaselens.config.ts
+npx releaselens check            # run checks and print a report
+npx releaselens check --ci       # exit non-zero on critical findings
+npx releaselens check --json     # machine-readable output
 ```
 
 A minimal config:
 
 ```ts
-// contentops.config.ts
-import { defineContentOps } from '@contentops/core';
+// releaselens.config.ts
+import { defineReleaseLens } from '@releaselens/core';
 
-export default defineContentOps({
+export default defineReleaseLens({
   framework: 'next',
-  cms: 'payload',
-  hosting: 'vercel',
+  previewUrl: { source: 'vercel' },
   locales: ['en', 'es'],
   defaultLocale: 'en',
   routes: [
     {
       id: 'pricing',
       path: '/pricing',
-      cms: { collection: 'pages', slug: 'pricing' },
-      requiredLocales: ['en', 'es'],
-      requiredMetadata: ['title', 'description', 'canonical', 'hreflang'],
+      businessImpact: 'high',
+      locales: ['en', 'es'],
+    },
+  ],
+  forms: [
+    {
+      id: 'pricing-lead',
+      onRoute: 'pricing',
+      selector: '[data-form=pricing-lead]',
+      successState: { type: 'route', value: '/thank-you' },
+    },
+  ],
+  events: [
+    {
+      name: 'pricing_form_submit',
+      onForm: 'pricing-lead',
+      consent: 'analytics',
     },
   ],
 });
@@ -48,8 +61,8 @@ export default defineContentOps({
 
 | Package | Description |
 | --- | --- |
-| [`@contentops/core`](./packages/core) | Config schema, types, check runner, default checks. |
-| [`contentops`](./packages/cli) | CLI binary. |
+| [`@releaselens/core`](./packages/core) | Config schema, types, check runner, default checks. |
+| [`releaselens`](./packages/cli) | CLI binary. |
 
 ## Development
 
@@ -64,12 +77,13 @@ pnpm -w typecheck
 
 ## What this is NOT
 
-- Not a CMS, visual builder, or content authoring tool.
-- Not a crawler or synthetic monitoring service.
-- Not a runtime analytics or experimentation platform.
-- Not an SEO content auditor.
+- Not an AI code review (Copilot, Cursor, CodeRabbit, Qodo territory).
+- Not a synthetic monitoring cloud (Checkly).
+- Not visual regression (Chromatic, Lost Pixel, Argos).
+- Not a CMS or content authoring tool.
+- Not an observability backend (Sentry, PostHog).
 
-It is a **pre-release policy and evidence layer** that runs deterministically in your CI alongside ESLint, TypeScript, and Playwright.
+A thin orchestrator that runs targeted checks on revenue routes before merge.
 
 ## License
 
