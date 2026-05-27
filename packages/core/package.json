@@ -25,11 +25,11 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
+    "typescript": "5.9.3",
     "zod": "3.25.76"
   },
   "devDependencies": {
     "tsup": "8.5.1",
-    "typescript": "5.9.3",
     "vitest": "3.2.4"
   }
 }

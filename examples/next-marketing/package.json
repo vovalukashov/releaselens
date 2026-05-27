@@ -1,0 +1,26 @@
+{
+  "name": "@releaselens-example/next-marketing",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Demo Next.js marketing site used to exercise releaselens checks.",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "check": "releaselens check"
+  },
+  "dependencies": {
+    "@releaselens/core": "workspace:*",
+    "next": "16.2.6",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "releaselens": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "24.12.4",
+    "@types/react": "19.2.15",
+    "@types/react-dom": "19.2.3",
+    "typescript": "5.9.3"
+  }
+}

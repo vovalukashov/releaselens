@@ -85,6 +85,7 @@ export type Adapters = z.infer<typeof AdaptersSchema>;
 export const ReleaseLensConfigSchema = z
   .object({
     framework: FrameworkSchema.default('next'),
+    appDir: z.string().min(1).default('./app'),
     previewUrl: PreviewSourceSchema.default({ source: 'vercel' }),
     locales: z.array(z.string().min(1)).default([]),
     defaultLocale: z.string().min(1).optional(),

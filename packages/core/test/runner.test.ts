@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { defineReleaseLens, runChecks } from '../src/index.js';
 
 describe('runChecks', () => {
-  it('passes on a clean config', async () => {
+  it('passes on a clean config (no appDir = SEO check skipped)', async () => {
     const cfg = defineReleaseLens({
       locales: ['en'],
       defaultLocale: 'en',
+      appDir: './does-not-exist',
       routes: [{ id: 'home', path: '/', businessImpact: 'high' }],
     });
     const report = await runChecks(cfg);
@@ -13,25 +14,22 @@ describe('runChecks', () => {
     expect(report.counts.critical).toBe(0);
   });
 
-  it('emits info findings for SEO placeholder check per route', async () => {
+  it('emits an info finding when appDir is missing', async () => {
     const cfg = defineReleaseLens({
-      routes: [
-        { id: 'pricing', path: '/pricing' },
-        { id: 'contact', path: '/contact' },
-      ],
+      appDir: './does-not-exist',
+      routes: [{ id: 'pricing', path: '/pricing' }],
     });
     const report = await runChecks(cfg);
-    const seo = report.results.filter(
-      (r) => r.checkId === 'seo-metadata-declared',
-    );
-    expect(seo).toHaveLength(2);
-    expect(seo.every((r) => r.severity === 'info')).toBe(true);
+    const seo = report.results.filter((r) => r.checkId === 'seo-static');
+    expect(seo).toHaveLength(1);
+    expect(seo[0]?.severity).toBe('info');
   });
 
   it('fails with critical when a route requires an unknown locale', async () => {
     const cfg = defineReleaseLens({
       locales: ['en'],
       defaultLocale: 'en',
+      appDir: './does-not-exist',
       routes: [{ id: 'pricing', path: '/pricing', locales: ['en', 'fr'] }],
     });
     const report = await runChecks(cfg);
@@ -46,6 +44,7 @@ describe('runChecks', () => {
 
   it('fails when a form references a missing route', async () => {
     const cfg = defineReleaseLens({
+      appDir: './does-not-exist',
       routes: [{ id: 'pricing', path: '/pricing' }],
       forms: [
         {
@@ -68,6 +67,7 @@ describe('runChecks', () => {
 
   it('fails when an event targets a missing form', async () => {
     const cfg = defineReleaseLens({
+      appDir: './does-not-exist',
       events: [{ name: 'evt_x', onForm: 'nonexistent', consent: 'analytics' }],
     });
     const report = await runChecks(cfg);
@@ -81,13 +81,12 @@ describe('runChecks', () => {
 
   it('applies rule overrides for severity', async () => {
     const cfg = defineReleaseLens({
+      appDir: './does-not-exist',
       routes: [{ id: 'home', path: '/' }],
-      rules: { 'seo-metadata-declared': { severity: 'warning' } },
+      rules: { 'seo-static': { severity: 'warning' } },
     });
     const report = await runChecks(cfg);
-    const seo = report.results.find(
-      (r) => r.checkId === 'seo-metadata-declared',
-    );
+    const seo = report.results.find((r) => r.checkId === 'seo-static');
     expect(seo?.severity).toBe('warning');
   });
 });
