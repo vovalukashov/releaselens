@@ -108,6 +108,8 @@ pnpm -w test
 pnpm -w typecheck
 ```
 
+Or use the **dev container** (GitHub Codespaces, VS Code / Cursor Dev Containers, JetBrains) — includes Node 24, pnpm 11, gh CLI, Docker-in-Docker, **Claude Code CLI**, and pre-built packages. See [`docs/dispatch.md`](./docs/dispatch.md) for routine setup and the env var matrix.
+
 ## What this is NOT
 
 - Not an AI code review (Copilot, Cursor, CodeRabbit, Qodo territory).
