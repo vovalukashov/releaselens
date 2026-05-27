@@ -1,0 +1,66 @@
+name: ReleaseLens (demo self-check)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  releaselens:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm -w build
+
+      - name: Run releaselens against next-marketing demo
+        id: check
+        continue-on-error: true
+        working-directory: examples/next-marketing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ../../packages/cli/dist/index.js check --ci --json --report > releaselens.json
+          echo "exit-code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Post PR comment
+        if: github.event_name == 'pull_request' && always()
+        working-directory: examples/next-marketing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ -f releaselens-report.md ]; then
+            gh pr comment "$PR_NUMBER" --body-file releaselens-report.md
+          fi
+
+      - name: Upload artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: releaselens-demo-report
+          path: |
+            examples/next-marketing/releaselens-report.md
+            examples/next-marketing/releaselens.json
+
+      - name: Report outcome (self-check is informational)
+        run: |
+          echo "Demo expects 1 critical finding (missing canonical on /contact-sales)."
+          echo "Exit code from releaselens: ${{ steps.check.outputs.exit-code }}"

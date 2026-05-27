@@ -1,6 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { runChecks } from '@releaselens/core';
+import { runChecks, writeBaseline } from '@releaselens/core';
+import pc from 'picocolors';
 import { ConfigNotFoundError, loadConfig } from '../load-config.js';
 import { jsonReport } from '../reporters/json.js';
 import { markdownReport } from '../reporters/markdown.js';
@@ -11,9 +12,11 @@ export interface CheckOptions {
   ci: boolean;
   json: boolean;
   report: boolean | string;
+  updateBaseline: boolean;
 }
 
 const DEFAULT_REPORT_PATH = 'releaselens-report.md';
+const BASELINE_PATH = '.releaselens/baseline.json';
 
 export async function checkCommand(opts: CheckOptions): Promise<void> {
   let loaded;
@@ -31,6 +34,18 @@ export async function checkCommand(opts: CheckOptions): Promise<void> {
   }
 
   const report = await runChecks(loaded.config);
+
+  if (opts.updateBaseline) {
+    const baselinePath = resolve(process.cwd(), BASELINE_PATH);
+    const fingerprints = report.results
+      .map((r) => r.fingerprint)
+      .filter((fp): fp is string => Boolean(fp));
+    writeBaseline(baselinePath, fingerprints);
+    process.stdout.write(
+      `${pc.green('Baseline updated')} ${pc.bold(baselinePath)} (${fingerprints.length} fingerprints).\n`,
+    );
+    return;
+  }
 
   if (opts.json) {
     process.stdout.write(`${jsonReport(report)}\n`);

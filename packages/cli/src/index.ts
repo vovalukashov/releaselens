@@ -1,6 +1,8 @@
 import { Command } from 'commander';
 import { checkCommand } from './commands/check.js';
+import { dismissCommand } from './commands/dismiss.js';
 import { initCommand } from './commands/init.js';
+import { unmuteCommand } from './commands/unmute.js';
 
 const program = new Command();
 
@@ -34,20 +36,57 @@ program
     'Write a markdown report to file (default: ./releaselens-report.md).',
     false,
   )
+  .option(
+    '--update-baseline',
+    'Snapshot current findings to .releaselens/baseline.json. Subsequent runs ignore these fingerprints.',
+    false,
+  )
   .action(
     async (opts: {
       config?: string;
       ci: boolean;
       json: boolean;
       report: boolean | string;
+      updateBaseline: boolean;
     }) => {
       await checkCommand({
         ...(opts.config ? { configPath: opts.config } : {}),
         ci: opts.ci,
         json: opts.json,
         report: opts.report,
+        updateBaseline: opts.updateBaseline,
       });
     },
   );
+
+program
+  .command('dismiss <fingerprint>')
+  .description(
+    'Dismiss a finding by fingerprint. Adds entry to .releaselens/dismissed.json.',
+  )
+  .requiredOption('-r, --reason <reason>', 'Why this finding is dismissed.')
+  .option('-c, --config <path>', 'Path to releaselens.config.{ts,mjs,js}')
+  .action(
+    async (
+      fingerprint: string,
+      opts: { reason: string; config?: string },
+    ) => {
+      await dismissCommand({
+        fingerprint,
+        reason: opts.reason,
+        ...(opts.config ? { configPath: opts.config } : {}),
+      });
+    },
+  );
+
+program
+  .command('unmute <checkId>')
+  .description(
+    'Remove auto-mute for a check on a surface (route, form, or event id).',
+  )
+  .requiredOption('-s, --surface <id>', 'Target surface id.')
+  .action(async (checkId: string, opts: { surface: string }) => {
+    await unmuteCommand({ checkId, surface: opts.surface });
+  });
 
 await program.parseAsync();

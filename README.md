@@ -15,10 +15,13 @@ Pre-alpha — Month 1 of 6-month execution. Static-only checks. GitHub Action la
 ```bash
 pnpm add -D releaselens          # placeholder, not published yet
 npx releaselens init             # scaffold releaselens.config.ts
-npx releaselens check            # run checks and print a report
-npx releaselens check --ci       # exit non-zero on critical findings
-npx releaselens check --json     # machine-readable output
-npx releaselens check --report   # also write releaselens-report.md (for PR artifacts)
+npx releaselens check                            # run checks and print a report
+npx releaselens check --ci                       # exit non-zero on critical findings
+npx releaselens check --json                     # machine-readable output
+npx releaselens check --report                   # also write releaselens-report.md (for PR artifacts)
+npx releaselens check --update-baseline          # snapshot current findings to .releaselens/baseline.json
+npx releaselens dismiss <fp> --reason "..."      # silence a specific finding by fingerprint
+npx releaselens unmute <checkId> --surface <id>  # restore auto-muted check
 ```
 
 A minimal config:
@@ -58,12 +61,38 @@ export default defineReleaseLens({
 });
 ```
 
+## GitHub Action
+
+```yaml
+name: ReleaseLens
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  pull-requests: write
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - uses: vovalukashov/releaselens/actions/releaselens-check@main
+```
+
+See [`actions/releaselens-check`](./actions/releaselens-check) for inputs and notes.
+
 ## Packages
 
 | Package | Description |
 | --- | --- |
-| [`@releaselens/core`](./packages/core) | Config schema, types, check runner, default checks. |
-| [`releaselens`](./packages/cli) | CLI binary. |
+| [`@releaselens/core`](./packages/core) | Config schema, types, check runner, FP-budget storage, default checks. |
+| [`releaselens`](./packages/cli) | CLI binary (`init`, `check`, `dismiss`, `unmute`). |
 
 ## Development
 

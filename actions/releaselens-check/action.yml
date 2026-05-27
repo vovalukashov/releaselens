@@ -1,0 +1,79 @@
+name: 'ReleaseLens Check'
+description: 'Run releaselens pre-merge regression checks and post a PR comment.'
+author: 'vovalukashov'
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  working-directory:
+    description: 'Directory containing releaselens.config.{ts,mjs,js}.'
+    required: false
+    default: '.'
+  config:
+    description: 'Explicit path to the config file (relative to working-directory).'
+    required: false
+    default: ''
+  ci:
+    description: 'Exit with non-zero on blocking critical findings.'
+    required: false
+    default: 'true'
+  pr-comment:
+    description: 'Post a PR comment with the markdown report.'
+    required: false
+    default: 'true'
+  github-token:
+    description: 'Token used to post PR comments.'
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run releaselens
+      id: run
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        RL_CONFIG: ${{ inputs.config }}
+      run: |
+        set +e
+        CONFIG_FLAG=""
+        if [ -n "$RL_CONFIG" ]; then
+          CONFIG_FLAG="--config $RL_CONFIG"
+        fi
+        CI_FLAG=""
+        if [ "${{ inputs.ci }}" = "true" ]; then
+          CI_FLAG="--ci"
+        fi
+        pnpm exec releaselens check $CI_FLAG --json --report $CONFIG_FLAG > releaselens.json
+        echo "exit-code=$?" >> "$GITHUB_OUTPUT"
+        set -e
+
+    - name: Post PR comment
+      if: github.event_name == 'pull_request' && inputs.pr-comment == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+      run: |
+        if [ -f releaselens-report.md ]; then
+          gh pr comment "$PR_NUMBER" --body-file releaselens-report.md
+        fi
+
+    - name: Upload artifact
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: releaselens-report
+        path: |
+          ${{ inputs.working-directory }}/releaselens-report.md
+          ${{ inputs.working-directory }}/releaselens.json
+
+    - name: Enforce CI gate
+      if: inputs.ci == 'true' && steps.run.outputs.exit-code != '0'
+      shell: bash
+      run: |
+        echo "ReleaseLens found blocking critical findings."
+        exit 1

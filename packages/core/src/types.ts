@@ -12,6 +12,7 @@ export interface CheckResult {
   event?: string;
   locale?: string;
   data?: Record<string, unknown>;
+  fingerprint?: string;
 }
 
 export interface CheckContext {
@@ -36,4 +37,6 @@ export interface RunReport {
   results: CheckResult[];
   counts: Record<Severity, number>;
   passed: boolean;
+  baselineLoaded: boolean;
+  dismissedCount: number;
 }
