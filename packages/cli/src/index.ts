@@ -29,12 +29,23 @@ program
     false,
   )
   .option('--json', 'Emit machine-readable JSON instead of text.', false)
+  .option(
+    '--report [path]',
+    'Write a markdown report to file (default: ./releaselens-report.md).',
+    false,
+  )
   .action(
-    async (opts: { config?: string; ci: boolean; json: boolean }) => {
+    async (opts: {
+      config?: string;
+      ci: boolean;
+      json: boolean;
+      report: boolean | string;
+    }) => {
       await checkCommand({
         ...(opts.config ? { configPath: opts.config } : {}),
         ci: opts.ci,
         json: opts.json,
+        report: opts.report,
       });
     },
   );

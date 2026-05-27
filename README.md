@@ -18,6 +18,7 @@ npx releaselens init             # scaffold releaselens.config.ts
 npx releaselens check            # run checks and print a report
 npx releaselens check --ci       # exit non-zero on critical findings
 npx releaselens check --json     # machine-readable output
+npx releaselens check --report   # also write releaselens-report.md (for PR artifacts)
 ```
 
 A minimal config:

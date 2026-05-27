@@ -12,3 +12,8 @@ coverage/
 .env.*.local
 
 .vercel/
+
+# Generated artifacts
+releaselens-report.md
+.releaselens/
+.next/
