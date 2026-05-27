@@ -3,6 +3,7 @@ import { defineReleaseLens } from '@releaselens/core';
 export default defineReleaseLens({
   framework: 'next',
   appDir: './app',
+  frontendDirs: ['./app', './components'],
   previewUrl: { source: 'vercel' },
   locales: ['en', 'es'],
   defaultLocale: 'en',
@@ -17,11 +18,13 @@ export default defineReleaseLens({
       path: '/pricing',
       businessImpact: 'high',
       locales: ['en', 'es'],
+      cms: { collection: 'pages', slug: 'pricing' },
     },
     {
       id: 'contact-sales',
       path: '/contact-sales',
       businessImpact: 'high',
+      cms: { collection: 'pages', slug: 'contact-sales' },
     },
   ],
   forms: [
@@ -51,4 +54,7 @@ export default defineReleaseLens({
       consent: 'analytics',
     },
   ],
+  adapters: {
+    payload: { config: './payload.config.ts' },
+  },
 });

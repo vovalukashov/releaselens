@@ -26,6 +26,12 @@ export const PreviewSourceSchema = z.discriminatedUnion('source', [
 ]);
 export type PreviewSource = z.infer<typeof PreviewSourceSchema>;
 
+export const RouteCmsSchema = z.object({
+  collection: z.string().min(1),
+  slug: z.string().min(1).optional(),
+});
+export type RouteCms = z.infer<typeof RouteCmsSchema>;
+
 export const RouteSchema = z.object({
   id: z.string().min(1),
   path: z
@@ -34,6 +40,7 @@ export const RouteSchema = z.object({
     .regex(/^\//, { message: 'Route path must start with "/"' }),
   businessImpact: BusinessImpactSchema.default('medium'),
   locales: z.array(z.string().min(1)).optional(),
+  cms: RouteCmsSchema.optional(),
 });
 export type Route = z.infer<typeof RouteSchema>;
 
@@ -86,6 +93,9 @@ export const ReleaseLensConfigSchema = z
   .object({
     framework: FrameworkSchema.default('next'),
     appDir: z.string().min(1).default('./app'),
+    frontendDirs: z
+      .array(z.string().min(1))
+      .default(['./app', './components']),
     previewUrl: PreviewSourceSchema.default({ source: 'vercel' }),
     locales: z.array(z.string().min(1)).default([]),
     defaultLocale: z.string().min(1).optional(),

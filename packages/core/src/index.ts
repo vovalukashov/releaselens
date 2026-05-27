@@ -9,3 +9,5 @@ export * from './storage/fingerprint.js';
 export * from './storage/baseline.js';
 export * from './storage/dismissed.js';
 export * from './ai/explain.js';
+export * from './content/content-model.js';
+export * from './adapters/payload/load-payload.js';
