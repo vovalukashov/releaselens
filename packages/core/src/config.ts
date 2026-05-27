@@ -89,6 +89,13 @@ export const AdaptersSchema = z.object({
 });
 export type Adapters = z.infer<typeof AdaptersSchema>;
 
+export const CloudConfigSchema = z.object({
+  endpoint: z.string().url().default('https://releaselens.vercel.app'),
+  project: z.string().min(1).optional(),
+  tokenEnv: z.string().min(1).default('RELEASELENS_TOKEN'),
+});
+export type CloudConfig = z.infer<typeof CloudConfigSchema>;
+
 export const ReleaseLensConfigSchema = z
   .object({
     framework: FrameworkSchema.default('next'),
@@ -104,6 +111,7 @@ export const ReleaseLensConfigSchema = z
     events: z.array(EventSchema).default([]),
     rules: z.record(z.string().min(1), RuleConfigSchema).default({}),
     adapters: AdaptersSchema.default({}),
+    cloud: CloudConfigSchema.optional(),
   })
   .superRefine((cfg, ctx) => {
     if (cfg.defaultLocale && !cfg.locales.includes(cfg.defaultLocale)) {

@@ -8,7 +8,7 @@ Not an AI code review. Not synthetic monitoring. Not visual regression. Not a CM
 
 ## Status
 
-Pre-alpha — Month 1 of 6-month execution. Static-only checks. GitHub Action lands Month 2. Real Next.js metadata parsing, form smoke, and analytics contract validation roll in across Months 1–4. See the Linear project for the live roadmap.
+Pre-alpha — Month 6 (final) of 6-month execution. Day-180 evaluation pending. All 10 default checks live (SEO, forms, analytics, locales, Payload CMS, plus 4 config-integrity checks). GitHub Action + FP-budget + AI explanations + hosted cloud scaffold all shipped. See [Linear project](https://linear.app/vovas-workspace/project/releaselens-b530bf7260a9) for the live roadmap and [`/docs/day-180-eval.md`](./docs/day-180-eval.md) for the decision framework.
 
 ## Quickstart
 
@@ -22,6 +22,8 @@ npx releaselens check --report                   # also write releaselens-report
 npx releaselens check --update-baseline          # snapshot current findings to .releaselens/baseline.json
 npx releaselens dismiss <fp> --reason "..."      # silence a specific finding by fingerprint
 npx releaselens unmute <checkId> --surface <id>  # restore auto-muted check
+npx releaselens check --upload --pr 42           # upload report to hosted backend
+npx releaselens push --pr 42                     # alias: run + upload only
 ```
 
 A minimal config:
@@ -91,8 +93,9 @@ See [`actions/releaselens-check`](./actions/releaselens-check) for inputs and no
 
 | Package | Description |
 | --- | --- |
-| [`@releaselens/core`](./packages/core) | Config schema, types, check runner, FP-budget storage, default checks. |
-| [`releaselens`](./packages/cli) | CLI binary (`init`, `check`, `dismiss`, `unmute`). |
+| [`@releaselens/core`](./packages/core) | Config schema, types, check runner, FP-budget storage, 10 default checks, Payload adapter, AI explainer. |
+| [`releaselens`](./packages/cli) | CLI binary (`init`, `check`, `push`, `dismiss`, `unmute`). |
+| [`@releaselens/cloud`](./apps/cloud) | Hosted backend (Next.js + Drizzle + Neon + Stripe). Deployable on Vercel. |
 
 ## Development
 

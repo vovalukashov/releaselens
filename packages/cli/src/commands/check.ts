@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { explainFindings, runChecks, writeBaseline } from '@releaselens/core';
 import pc from 'picocolors';
 import { ConfigNotFoundError, loadConfig } from '../load-config.js';
+import { pushCommand } from './push.js';
 import { jsonReport } from '../reporters/json.js';
 import { markdownReport } from '../reporters/markdown.js';
 import { textReport } from '../reporters/text.js';
@@ -14,6 +15,10 @@ export interface CheckOptions {
   report: boolean | string;
   updateBaseline: boolean;
   explain: boolean;
+  upload: boolean;
+  prNumber?: string;
+  branch?: string;
+  commit?: string;
 }
 
 const DEFAULT_REPORT_PATH = 'releaselens-report.md';
@@ -75,6 +80,20 @@ export async function checkCommand(opts: CheckOptions): Promise<void> {
     );
     if (!opts.json) {
       process.stdout.write(`Markdown report written to ${absReportPath}\n`);
+    }
+  }
+
+  if (opts.upload) {
+    try {
+      await pushCommand({
+        ...(opts.configPath ? { configPath: opts.configPath } : {}),
+        ...(opts.prNumber ? { prNumber: opts.prNumber } : {}),
+        ...(opts.branch ? { branch: opts.branch } : {}),
+        ...(opts.commit ? { commit: opts.commit } : {}),
+        report,
+      });
+    } catch (err) {
+      process.stderr.write(`Upload error: ${(err as Error).message}\n`);
     }
   }
 

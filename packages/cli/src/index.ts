@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { checkCommand } from './commands/check.js';
 import { dismissCommand } from './commands/dismiss.js';
 import { initCommand } from './commands/init.js';
+import { pushCommand } from './commands/push.js';
 import { unmuteCommand } from './commands/unmute.js';
 
 const program = new Command();
@@ -9,7 +10,7 @@ const program = new Command();
 program
   .name('releaselens')
   .description(
-    'Pre-merge regression detector for Next.js revenue pages: SEO, forms, analytics, localization.',
+    'Pre-merge regression detector for Next.js revenue pages: SEO, forms, analytics, localization, CMS.',
   )
   .version('0.0.0');
 
@@ -46,6 +47,14 @@ program
     'Attach AI-generated explanations to non-info findings (requires AI_GATEWAY_API_KEY).',
     false,
   )
+  .option(
+    '--upload',
+    'Upload the report to the cloud backend (requires cloud config + token).',
+    false,
+  )
+  .option('--pr <number>', 'PR number to attach when uploading.')
+  .option('--branch <branch>', 'Branch name to attach when uploading.')
+  .option('--commit <sha>', 'Commit SHA to attach when uploading.')
   .action(
     async (opts: {
       config?: string;
@@ -54,6 +63,10 @@ program
       report: boolean | string;
       updateBaseline: boolean;
       explain: boolean;
+      upload: boolean;
+      pr?: string;
+      branch?: string;
+      commit?: string;
     }) => {
       await checkCommand({
         ...(opts.config ? { configPath: opts.config } : {}),
@@ -62,6 +75,35 @@ program
         report: opts.report,
         updateBaseline: opts.updateBaseline,
         explain: opts.explain,
+        upload: opts.upload,
+        ...(opts.pr ? { prNumber: opts.pr } : {}),
+        ...(opts.branch ? { branch: opts.branch } : {}),
+        ...(opts.commit ? { commit: opts.commit } : {}),
+      });
+    },
+  );
+
+program
+  .command('push')
+  .description(
+    'Run checks and upload the report to the hosted backend (without printing locally).',
+  )
+  .option('-c, --config <path>', 'Path to releaselens.config.{ts,mjs,js}')
+  .option('--pr <number>', 'PR number to attach.')
+  .option('--branch <branch>', 'Branch name to attach.')
+  .option('--commit <sha>', 'Commit SHA to attach.')
+  .action(
+    async (opts: {
+      config?: string;
+      pr?: string;
+      branch?: string;
+      commit?: string;
+    }) => {
+      await pushCommand({
+        ...(opts.config ? { configPath: opts.config } : {}),
+        ...(opts.pr ? { prNumber: opts.pr } : {}),
+        ...(opts.branch ? { branch: opts.branch } : {}),
+        ...(opts.commit ? { commit: opts.commit } : {}),
       });
     },
   );
