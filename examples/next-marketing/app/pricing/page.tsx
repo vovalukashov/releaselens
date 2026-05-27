@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { PricingForm } from './pricing-form';
 
 export const metadata: Metadata = {
   title: 'Pricing — Acme',
@@ -17,10 +18,7 @@ export default function PricingPage() {
   return (
     <main>
       <h1>Pricing</h1>
-      <form data-form="pricing-lead" action="/api/lead" method="post">
-        <input name="email" type="email" required />
-        <button type="submit">Get started</button>
-      </form>
+      <PricingForm />
     </main>
   );
 }

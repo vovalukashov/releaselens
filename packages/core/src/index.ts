@@ -3,6 +3,8 @@ export * from './types.js';
 export * from './runner.js';
 export * from './checks/index.js';
 export * from './seo/parse-metadata.js';
+export * from './forms/parse-jsx-forms.js';
+export * from './analytics/parse-tracking-calls.js';
 export * from './storage/fingerprint.js';
 export * from './storage/baseline.js';
 export * from './storage/dismissed.js';
