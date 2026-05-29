@@ -1,9 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-import { parseSeoMetadata } from '../seo/parse-metadata.js';
+import { resolve } from 'node:path';
+import { mergeSeoMetadata, parseSeoMetadata } from '../seo/parse-metadata.js';
+import { collectLayoutFiles, findPageFile } from './find-page-file.js';
 import type { Check, CheckResult } from '../types.js';
 
-const PAGE_EXTENSIONS = ['.tsx', '.ts', '.jsx', '.js'];
 const CHECK_ID = 'seo-static';
 
 export const seoStaticCheck: Check = {
@@ -39,21 +39,9 @@ export const seoStaticCheck: Check = {
         continue;
       }
 
-      const source = readFileSync(pageFile, 'utf8');
-      const meta = parseSeoMetadata(source, pageFile);
+      const pageMeta = parseSeoMetadata(readFileSync(pageFile, 'utf8'), pageFile);
 
-      if (!meta.hasMetadata && !meta.hasGenerateMetadata) {
-        results.push({
-          checkId: CHECK_ID,
-          severity: 'warning',
-          confidence: 'high',
-          message: `Route "${route.id}": no \`metadata\` or \`generateMetadata\` export found in ${relativePath(cwd, pageFile)}.`,
-          route: route.id,
-        });
-        continue;
-      }
-
-      if (meta.hasGenerateMetadata && !meta.hasMetadata) {
+      if (pageMeta.hasGenerateMetadata && !pageMeta.hasMetadata) {
         results.push({
           checkId: CHECK_ID,
           severity: 'info',
@@ -64,25 +52,41 @@ export const seoStaticCheck: Check = {
         continue;
       }
 
-      if (!meta.title) {
-        results.push({
-          checkId: CHECK_ID,
-          severity: 'critical',
-          confidence: 'high',
-          message: `Route "${route.id}": missing static \`metadata.title\`.`,
-          route: route.id,
-        });
-      }
-      if (!meta.description) {
+      const layoutMetas = collectLayoutFiles(appDir, pageFile).map((file) =>
+        parseSeoMetadata(readFileSync(file, 'utf8'), file),
+      );
+      const meta = mergeSeoMetadata([...layoutMetas, pageMeta]);
+
+      if (!meta.hasMetadata) {
         results.push({
           checkId: CHECK_ID,
           severity: 'warning',
           confidence: 'high',
-          message: `Route "${route.id}": missing static \`metadata.description\`.`,
+          message: `Route "${route.id}": no \`metadata\` or \`generateMetadata\` export found in ${relativePath(cwd, pageFile)} or its layouts.`,
+          route: route.id,
+        });
+        continue;
+      }
+
+      if (!meta.hasTitle) {
+        results.push({
+          checkId: CHECK_ID,
+          severity: 'critical',
+          confidence: 'high',
+          message: `Route "${route.id}": missing \`metadata.title\` (not set on the page or any layout).`,
           route: route.id,
         });
       }
-      if (route.businessImpact === 'high' && !meta.canonical) {
+      if (!meta.hasDescription) {
+        results.push({
+          checkId: CHECK_ID,
+          severity: 'warning',
+          confidence: 'high',
+          message: `Route "${route.id}": missing \`metadata.description\` (not set on the page or any layout).`,
+          route: route.id,
+        });
+      }
+      if (route.businessImpact === 'high' && !meta.hasCanonical) {
         results.push({
           checkId: CHECK_ID,
           severity: 'critical',
@@ -91,11 +95,7 @@ export const seoStaticCheck: Check = {
           route: route.id,
         });
       }
-      if (
-        route.locales &&
-        route.locales.length > 1 &&
-        (!meta.hreflang || Object.keys(meta.hreflang).length === 0)
-      ) {
+      if (route.locales && route.locales.length > 1 && !meta.hasHreflang) {
         results.push({
           checkId: CHECK_ID,
           severity: 'warning',
@@ -118,15 +118,6 @@ export const seoStaticCheck: Check = {
     return results;
   },
 };
-
-function findPageFile(appDir: string, routePath: string): string | undefined {
-  const subPath = routePath === '/' ? '' : routePath;
-  for (const ext of PAGE_EXTENSIONS) {
-    const candidate = join(appDir, subPath, `page${ext}`);
-    if (existsSync(candidate)) return candidate;
-  }
-  return undefined;
-}
 
 function relativePath(cwd: string, file: string): string {
   return file.startsWith(cwd) ? file.slice(cwd.length + 1) : file;

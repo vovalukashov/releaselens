@@ -1,10 +1,9 @@
-import { existsSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { parseSeoMetadata } from '../seo/parse-metadata.js';
-import { readFileSync } from 'node:fs';
+import { findPageFile } from './find-page-file.js';
 import type { Check, CheckResult } from '../types.js';
 
-const PAGE_EXTENSIONS = ['.tsx', '.ts', '.jsx', '.js'];
 const CHECK_ID = 'locales-static';
 
 export const localesStaticCheck: Check = {
@@ -22,7 +21,7 @@ export const localesStaticCheck: Check = {
       const locales = route.locales;
       if (!locales || locales.length === 0) continue;
 
-      const defaultPage = findPageFile(appDir, '', route.path);
+      const defaultPage = findPageFile(appDir, route.path);
       const defaultMeta = defaultPage
         ? parseSeoMetadata(readFileSync(defaultPage, 'utf8'), defaultPage)
         : null;
@@ -30,7 +29,7 @@ export const localesStaticCheck: Check = {
       for (const locale of locales) {
         if (locale === config.defaultLocale) continue;
 
-        const localizedPage = findPageFile(appDir, locale, route.path);
+        const localizedPage = findPageFile(appDir, route.path, locale);
         if (!localizedPage) {
           results.push({
             checkId: CHECK_ID,
@@ -102,17 +101,3 @@ export const localesStaticCheck: Check = {
     return results;
   },
 };
-
-function findPageFile(
-  appDir: string,
-  localePrefix: string,
-  routePath: string,
-): string | undefined {
-  const subPath = routePath === '/' ? '' : routePath;
-  const prefix = localePrefix ? `/${localePrefix}` : '';
-  for (const ext of PAGE_EXTENSIONS) {
-    const candidate = join(appDir, prefix, subPath, `page${ext}`);
-    if (existsSync(candidate)) return candidate;
-  }
-  return undefined;
-}

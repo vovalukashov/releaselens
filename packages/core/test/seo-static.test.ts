@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseSeoMetadata } from '../src/seo/parse-metadata.js';
+import { mergeSeoMetadata, parseSeoMetadata } from '../src/seo/parse-metadata.js';
 
 describe('parseSeoMetadata', () => {
   it('extracts static title, description, canonical, hreflang, robots', () => {
@@ -86,5 +86,43 @@ describe('parseSeoMetadata', () => {
     expect(meta.hasMetadata).toBe(true);
     expect(meta.title).toBeUndefined();
     expect(meta.description).toBe('static');
+  });
+
+  it('marks fields present even when values are non-literal (siteConfig pattern)', () => {
+    const source = `
+      export const metadata = {
+        title: { default: siteConfig.name, template: '%s | ' + siteConfig.name },
+        description: siteConfig.description,
+        alternates: { canonical: siteConfig.url, languages: someLanguages },
+      };
+    `;
+    const meta = parseSeoMetadata(source);
+    expect(meta.hasTitle).toBe(true);
+    expect(meta.hasDescription).toBe(true);
+    expect(meta.hasCanonical).toBe(true);
+    expect(meta.hasHreflang).toBe(true);
+    expect(meta.title).toBeUndefined();
+  });
+});
+
+describe('mergeSeoMetadata', () => {
+  it('inherits layout metadata into a page that defines none', () => {
+    const layout = parseSeoMetadata(`
+      export const metadata = {
+        title: { default: siteConfig.name, template: '%s' },
+        description: siteConfig.description,
+      };
+    `);
+    const page = parseSeoMetadata(`export default function Page() { return null; }`);
+    const merged = mergeSeoMetadata([layout, page]);
+    expect(merged.hasMetadata).toBe(true);
+    expect(merged.hasTitle).toBe(true);
+    expect(merged.hasDescription).toBe(true);
+  });
+
+  it('lets the page override layout literal values', () => {
+    const layout = parseSeoMetadata(`export const metadata = { title: 'Layout' };`);
+    const page = parseSeoMetadata(`export const metadata = { title: 'Page' };`);
+    expect(mergeSeoMetadata([layout, page]).title).toBe('Page');
   });
 });
