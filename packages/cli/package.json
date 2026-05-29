@@ -1,8 +1,23 @@
 {
   "name": "releaselens",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Release-safety checks for code-first Next.js marketing sites.",
   "license": "MIT",
+  "keywords": [
+    "nextjs",
+    "ci",
+    "seo",
+    "regression",
+    "release-safety",
+    "cli"
+  ],
+  "homepage": "https://github.com/vovalukashov/releaselens#readme",
+  "bugs": "https://github.com/vovalukashov/releaselens/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vovalukashov/releaselens.git",
+    "directory": "packages/cli"
+  },
   "type": "module",
   "bin": {
     "releaselens": "./dist/index.js"

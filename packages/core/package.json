@@ -1,8 +1,25 @@
 {
   "name": "@releaselens/core",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Config schema, types, and check runner for releaselens.",
   "license": "MIT",
+  "keywords": [
+    "nextjs",
+    "ci",
+    "seo",
+    "regression",
+    "release-safety"
+  ],
+  "homepage": "https://github.com/vovalukashov/releaselens#readme",
+  "bugs": "https://github.com/vovalukashov/releaselens/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vovalukashov/releaselens.git",
+    "directory": "packages/core"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
