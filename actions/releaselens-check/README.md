@@ -20,16 +20,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: corepack enable
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
       - uses: vovalukashov/releaselens/actions/releaselens-check@main
         with:
           working-directory: '.'
 ```
+
+Add `releaselens` to your `devDependencies` (`npm i -D releaselens`) so the config's
+`import { defineReleaseLens } from '@releaselens/core'` resolves. If it is not installed,
+the action falls back to fetching it on the fly via `npx --yes releaselens`.
 
 ## Inputs
 
@@ -43,7 +44,7 @@ jobs:
 
 ## Notes
 
-- The action expects `releaselens` to be available as a workspace binary (`pnpm exec releaselens`).
+- The action runs the CLI via `npx --yes releaselens`, so it works under npm, yarn, or pnpm. It uses the locally installed binary when present and downloads the published package otherwise.
 - Findings already captured in `.releaselens/baseline.json` are filtered automatically.
 - Findings dismissed via `releaselens dismiss <fingerprint>` are filtered automatically.
 - Low-confidence critical findings do not block the workflow even when `ci: true`.

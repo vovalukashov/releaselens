@@ -46,7 +46,7 @@ runs:
         if [ "${{ inputs.ci }}" = "true" ]; then
           CI_FLAG="--ci"
         fi
-        pnpm exec releaselens check $CI_FLAG --json --report $CONFIG_FLAG > releaselens.json
+        npx --yes releaselens check $CI_FLAG --json --report $CONFIG_FLAG > releaselens.json
         echo "exit-code=$?" >> "$GITHUB_OUTPUT"
         set -e
 
