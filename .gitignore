@@ -17,3 +17,6 @@ coverage/
 releaselens-report.md
 .releaselens/
 .next/
+
+# Personal Claude Code automation sandbox
+.devcontainer/
