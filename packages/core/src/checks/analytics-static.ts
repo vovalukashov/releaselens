@@ -20,11 +20,23 @@ export const analyticsStaticCheck: Check = {
     const appDir = resolve(cwd, config.appDir);
     if (!existsSync(appDir)) return results;
 
+    const scanDirs = new Set<string>([appDir]);
+    for (const dir of config.frontendDirs) {
+      const abs = resolve(cwd, dir);
+      if (existsSync(abs)) scanDirs.add(abs);
+    }
+
+    const extraTrackers = config.analytics.trackers;
     const trackedNames = new Set<string>();
-    for (const file of walkFiles(appDir)) {
-      const source = readFileSync(file, 'utf8');
-      for (const call of parseTrackingCalls(source, file)) {
-        trackedNames.add(call.name);
+    const seen = new Set<string>();
+    for (const dir of scanDirs) {
+      for (const file of walkFiles(dir)) {
+        if (seen.has(file)) continue;
+        seen.add(file);
+        const source = readFileSync(file, 'utf8');
+        for (const call of parseTrackingCalls(source, file, extraTrackers)) {
+          trackedNames.add(call.name);
+        }
       }
     }
 

@@ -89,6 +89,24 @@ export const AdaptersSchema = z.object({
 });
 export type Adapters = z.infer<typeof AdaptersSchema>;
 
+export const AnalyticsConfigSchema = z.object({
+  /**
+   * Additional tracker function names that analytics-static should treat as
+   * event-emitting calls. Each entry is a callee path; the first string-literal
+   * argument of the call is used as the event name. Built-in trackers
+   * (`track`, `posthog.capture`, `analytics.track`, `gtag:event`) are always
+   * recognised regardless of this list.
+   *
+   * Examples:
+   *   `'sendEvent'`             — identifier call `sendEvent('name', …)`
+   *   `'mixpanel.track'`        — `mixpanel.track('name', …)`
+   *   `'window.dataLayer.push'` — multi-level chain
+   *   `'gtag:event'`            — first arg must equal `'event'`, second is the name
+   */
+  trackers: z.array(z.string().min(1)).default([]),
+});
+export type AnalyticsConfig = z.infer<typeof AnalyticsConfigSchema>;
+
 export const CloudConfigSchema = z.object({
   endpoint: z.string().url().default('https://releaselens.vercel.app'),
   project: z.string().min(1).optional(),
@@ -111,6 +129,7 @@ export const ReleaseLensConfigSchema = z
     events: z.array(EventSchema).default([]),
     rules: z.record(z.string().min(1), RuleConfigSchema).default({}),
     adapters: AdaptersSchema.default({}),
+    analytics: AnalyticsConfigSchema.default({}),
     cloud: CloudConfigSchema.optional(),
   })
   .superRefine((cfg, ctx) => {

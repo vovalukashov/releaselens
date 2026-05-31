@@ -62,6 +62,16 @@ export default defineReleaseLens({
       consent: 'analytics',
     },
   ],
+  // analytics-static recognises `track`, `posthog.capture`, `analytics.track`,
+  // and `gtag('event', …)` out of the box. Custom wrappers are declared here.
+  analytics: {
+    trackers: [
+      'sendEvent',            // identifier call: sendEvent(name, …)
+      'mixpanel.track',       // member access: mixpanel.track(name, …)
+      '_sendEvent@1',         // name at arg 1: _sendEvent(host, name, …)
+      'gtag:event',           // first arg must equal 'event'; built-in
+    ],
+  },
 });
 ```
 
