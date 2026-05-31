@@ -40,6 +40,12 @@ export interface Check {
 export interface RunOptions {
   checks?: Check[];
   cwd?: string;
+  /**
+   * Skip the baseline and auto-mute filters so every finding is returned raw.
+   * Used by `releaselens check --update-baseline` to snapshot the full current
+   * state instead of only the deltas since the previous baseline.
+   */
+  skipFilters?: boolean;
 }
 
 export interface RunReport {

@@ -99,6 +99,8 @@ git add .releaselens/baseline.json
 
 `.releaselens/baseline.json` stores a fingerprint per finding so subsequent runs surface only **new** issues. Each fingerprint is `sha1(checkId + issueKey + route + form + event + locale)` — two different issues on the same surface (e.g. `missing-canonical` and `missing-hreflang` on `/pricing`) get **distinct** fingerprints, so resolving one does not silently unmute the other. The schema is versioned (currently `v2`); a legacy baseline triggers a warning telling you to re-snapshot.
 
+`--update-baseline` always re-snapshots the **full current state**, not just deltas since the previous baseline. Re-running it on a clean tree is safe — the file ends up with the same fingerprints, not an empty list.
+
 ### Dismiss
 
 ```bash

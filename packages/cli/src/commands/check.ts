@@ -39,7 +39,9 @@ export async function checkCommand(opts: CheckOptions): Promise<void> {
     process.exit(1);
   }
 
-  const report = await runChecks(loaded.config);
+  const report = await runChecks(loaded.config, {
+    skipFilters: opts.updateBaseline,
+  });
 
   if (opts.updateBaseline) {
     const baselinePath = resolve(process.cwd(), BASELINE_PATH);

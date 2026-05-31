@@ -39,16 +39,18 @@ export async function runChecks(
     fingerprint: computeFingerprint(r),
   }));
 
-  const visible = withFingerprints.filter((r) => {
-    if (baselineSet.has(r.fingerprint)) return false;
-    const surface = getSurface(r);
-    const threshold =
-      config.rules[r.checkId]?.autoMuteAfter ?? DEFAULT_AUTO_MUTE_AFTER;
-    if (isAutoMuted(dismissed, r.checkId, surface, threshold)) {
-      return false;
-    }
-    return true;
-  });
+  const visible = opts.skipFilters
+    ? withFingerprints
+    : withFingerprints.filter((r) => {
+        if (baselineSet.has(r.fingerprint)) return false;
+        const surface = getSurface(r);
+        const threshold =
+          config.rules[r.checkId]?.autoMuteAfter ?? DEFAULT_AUTO_MUTE_AFTER;
+        if (isAutoMuted(dismissed, r.checkId, surface, threshold)) {
+          return false;
+        }
+        return true;
+      });
 
   const counts: Record<Severity, number> = {
     critical: 0,
