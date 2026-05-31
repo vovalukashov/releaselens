@@ -23,8 +23,8 @@ npx releaselens check    # run checks and print a report
 ## GitHub Action
 
 ```yaml
-- uses: actions/checkout@v4
-- uses: actions/setup-node@v4
+- uses: actions/checkout@v6
+- uses: actions/setup-node@v6
   with:
     node-version: '24'
 - uses: vovalukashov/releaselens/actions/releaselens-check@main
