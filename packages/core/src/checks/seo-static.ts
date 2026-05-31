@@ -68,12 +68,17 @@ export const seoStaticCheck: Check = {
         continue;
       }
 
+      const presenceConfidence = meta.hasMetadataSpread ? 'low' : 'high';
+      const spreadNote = meta.hasMetadataSpread
+        ? ' (a spread is present, may be set dynamically)'
+        : '';
+
       if (!meta.hasTitle) {
         results.push({
           checkId: CHECK_ID,
           severity: 'critical',
-          confidence: 'high',
-          message: `Route "${route.id}": missing \`metadata.title\` (not set on the page or any layout).`,
+          confidence: presenceConfidence,
+          message: `Route "${route.id}": missing \`metadata.title\` (not set on the page or any layout)${spreadNote}.`,
           route: route.id,
         });
       }
@@ -81,8 +86,8 @@ export const seoStaticCheck: Check = {
         results.push({
           checkId: CHECK_ID,
           severity: 'warning',
-          confidence: 'high',
-          message: `Route "${route.id}": missing \`metadata.description\` (not set on the page or any layout).`,
+          confidence: presenceConfidence,
+          message: `Route "${route.id}": missing \`metadata.description\` (not set on the page or any layout)${spreadNote}.`,
           route: route.id,
         });
       }
@@ -90,8 +95,8 @@ export const seoStaticCheck: Check = {
         results.push({
           checkId: CHECK_ID,
           severity: 'critical',
-          confidence: 'high',
-          message: `Route "${route.id}" (businessImpact=high): missing \`metadata.alternates.canonical\`.`,
+          confidence: presenceConfidence,
+          message: `Route "${route.id}" (businessImpact=high): missing \`metadata.alternates.canonical\`${spreadNote}.`,
           route: route.id,
         });
       }
@@ -99,8 +104,8 @@ export const seoStaticCheck: Check = {
         results.push({
           checkId: CHECK_ID,
           severity: 'warning',
-          confidence: 'high',
-          message: `Route "${route.id}" declares ${route.locales.length} locales but \`metadata.alternates.languages\` (hreflang) is not set.`,
+          confidence: presenceConfidence,
+          message: `Route "${route.id}" declares ${route.locales.length} locales but \`metadata.alternates.languages\` (hreflang) is not set${spreadNote}.`,
           route: route.id,
         });
       }

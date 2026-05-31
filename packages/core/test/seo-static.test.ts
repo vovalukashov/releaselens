@@ -51,15 +51,18 @@ describe('parseSeoMetadata', () => {
     expect(meta.robotsIndex).toBe(false);
   });
 
-  it('detects generateMetadata function export', () => {
+  it('detects generateMetadata and extracts its returned literal', () => {
     const source = `
       export async function generateMetadata({ params }) {
-        return { title: 'dynamic' };
+        return { title: 'dynamic', description: 'd' };
       }
     `;
     const meta = parseSeoMetadata(source);
-    expect(meta.hasMetadata).toBe(false);
     expect(meta.hasGenerateMetadata).toBe(true);
+    expect(meta.hasMetadata).toBe(true);
+    expect(meta.hasTitle).toBe(true);
+    expect(meta.title).toBe('dynamic');
+    expect(meta.hasDescription).toBe(true);
   });
 
   it('returns empty when neither metadata nor generateMetadata exported', () => {
@@ -102,6 +105,89 @@ describe('parseSeoMetadata', () => {
     expect(meta.hasCanonical).toBe(true);
     expect(meta.hasHreflang).toBe(true);
     expect(meta.title).toBeUndefined();
+  });
+});
+
+describe('helper-wrapped generateMetadata', () => {
+  it('extracts fields from `return setMetadata({...})`', () => {
+    const source = `
+      import { setMetadata } from '@lib/utils';
+      export async function generateMetadata() {
+        return setMetadata({
+          title: 'Pricing',
+          description: 'Plans and pricing',
+          canonical: 'https://example.com/pricing',
+          languages: { en: 'https://example.com/pricing', es: 'https://example.com/es/pricing' },
+        });
+      }
+    `;
+    const meta = parseSeoMetadata(source);
+    expect(meta.hasGenerateMetadata).toBe(true);
+    expect(meta.hasMetadata).toBe(true);
+    expect(meta.hasTitle).toBe(true);
+    expect(meta.title).toBe('Pricing');
+    expect(meta.hasDescription).toBe(true);
+    expect(meta.hasCanonical).toBe(true);
+    expect(meta.canonical).toBe('https://example.com/pricing');
+    expect(meta.hasHreflang).toBe(true);
+    expect(meta.hreflang?.es).toBe('https://example.com/es/pricing');
+  });
+
+  it('works with any wrapper name (constructMetadata)', () => {
+    const source = `
+      export const generateMetadata = async () => constructMetadata({ title: 'X' });
+    `;
+    const meta = parseSeoMetadata(source);
+    expect(meta.hasGenerateMetadata).toBe(true);
+    expect(meta.hasMetadata).toBe(true);
+    expect(meta.hasTitle).toBe(true);
+    expect(meta.title).toBe('X');
+  });
+
+  it('resolves a variable returned from generateMetadata', () => {
+    const source = `
+      export async function generateMetadata() {
+        const m = { title: 'A', description: 'B' };
+        return m;
+      }
+    `;
+    const meta = parseSeoMetadata(source);
+    expect(meta.hasTitle).toBe(true);
+    expect(meta.title).toBe('A');
+    expect(meta.hasDescription).toBe(true);
+  });
+
+  it('handles `export const metadata = setMetadata({...})` (static helper-wrapped)', () => {
+    const source = `
+      export const metadata = setMetadata({ title: 'Home', description: 'D' });
+    `;
+    const meta = parseSeoMetadata(source);
+    expect(meta.hasMetadata).toBe(true);
+    expect(meta.hasTitle).toBe(true);
+    expect(meta.hasDescription).toBe(true);
+  });
+
+  it('flags a spread in the metadata object via hasMetadataSpread', () => {
+    const source = `
+      export async function generateMetadata() {
+        return setMetadata({
+          title: 'T',
+          ...getLocaleMetadata(host, path, 'en'),
+        });
+      }
+    `;
+    const meta = parseSeoMetadata(source);
+    expect(meta.hasTitle).toBe(true);
+    expect(meta.hasCanonical).toBe(false);
+    expect(meta.hasMetadataSpread).toBe(true);
+  });
+
+  it('reads noIndex: true as robotsIndex=false', () => {
+    const source = `
+      export const metadata = setMetadata({ title: 'X', noIndex: true });
+    `;
+    const meta = parseSeoMetadata(source);
+    expect(meta.robotsIndex).toBe(false);
   });
 });
 
