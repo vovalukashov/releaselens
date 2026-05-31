@@ -1,7 +1,7 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { computeFingerprint } from '../src/storage/fingerprint.js';
 import {
   BASELINE_SCHEMA_VERSION,
@@ -60,16 +60,21 @@ describe('computeFingerprint', () => {
 describe('baseline storage', () => {
   let dir: string;
   let file: string;
-  let stderrSpy: ReturnType<typeof vi.spyOn>;
+  const stderrCalls: string[] = [];
+  const origStderrWrite = process.stderr.write.bind(process.stderr);
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'rl-baseline-'));
     file = join(dir, 'baseline.json');
-    stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    stderrCalls.length = 0;
+    process.stderr.write = ((chunk: string | Uint8Array): boolean => {
+      stderrCalls.push(typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString('utf8'));
+      return true;
+    }) as typeof process.stderr.write;
   });
 
   afterEach(() => {
-    stderrSpy.mockRestore();
+    process.stderr.write = origStderrWrite;
     rmSync(dir, { recursive: true, force: true });
   });
 
@@ -99,9 +104,8 @@ describe('baseline storage', () => {
     );
     const baseline = readBaseline(file);
     expect(baseline).toBeNull();
-    expect(stderrSpy).toHaveBeenCalled();
-    const warning = (stderrSpy.mock.calls[0]?.[0] ?? '') as string;
-    expect(warning).toContain('--update-baseline');
+    expect(stderrCalls.length).toBeGreaterThan(0);
+    expect(stderrCalls.join('\n')).toContain('--update-baseline');
   });
 
   it('returns null when the file does not exist', () => {
