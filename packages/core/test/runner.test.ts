@@ -82,6 +82,54 @@ describe('runChecks', () => {
     ).toBeDefined();
   });
 
+  describe('dismissed.json (single-fp dismiss)', () => {
+    let cwd: string;
+
+    beforeEach(() => {
+      cwd = mkdtempSync(join(tmpdir(), 'rl-dismiss-'));
+      mkdirSync(join(cwd, '.releaselens'), { recursive: true });
+    });
+
+    afterEach(() => {
+      rmSync(cwd, { recursive: true, force: true });
+    });
+
+    const cfg = () =>
+      defineReleaseLens({
+        locales: ['en'],
+        defaultLocale: 'en',
+        appDir: './does-not-exist',
+        routes: [{ id: 'pricing', path: '/pricing', locales: ['en', 'fr'] }],
+      });
+
+    function writeDismissed(fingerprint: string, checkId = 'required-locales-exist', surface = 'pricing') {
+      writeFileSync(
+        join(cwd, '.releaselens', 'dismissed.json'),
+        JSON.stringify({
+          version: 1,
+          entries: [{ fingerprint, checkId, surface, reason: 't', dismissedAt: '2026-01-01' }],
+        }),
+      );
+    }
+
+    it('hides exactly the dismissed fingerprint and leaves others visible', async () => {
+      const first = await runChecks(cfg(), { cwd });
+      expect(first.results.length).toBeGreaterThan(0);
+      const targetFp = first.results[0]!.fingerprint!;
+      writeDismissed(targetFp);
+      const after = await runChecks(cfg(), { cwd });
+      expect(after.results.find((r) => r.fingerprint === targetFp)).toBeUndefined();
+      expect(after.results.length).toBe(first.results.length - 1);
+    });
+
+    it('skipFilters returns the dismissed finding (raw mode for --update-baseline)', async () => {
+      const first = await runChecks(cfg(), { cwd });
+      writeDismissed(first.results[0]!.fingerprint!);
+      const raw = await runChecks(cfg(), { cwd, skipFilters: true });
+      expect(raw.results.length).toBe(first.results.length);
+    });
+  });
+
   describe('skipFilters', () => {
     let cwd: string;
 

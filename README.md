@@ -119,11 +119,11 @@ git add .releaselens/baseline.json
 npx releaselens dismiss <fingerprint> --reason "legacy, pending redesign"
 ```
 
-Persists in `.releaselens/dismissed.json`. Use this when a finding is correct but intentionally ignored — leaves an auditable reason.
+Persists in `.releaselens/dismissed.json` and **hides that specific fingerprint** on subsequent runs. Use this when a finding is correct but intentionally ignored — leaves an auditable reason.
 
 ### Auto-mute
 
-If you dismiss the same `(checkId, surface)` three times in a row, the check auto-mutes that surface and emits an `info` finding the next run instead of a blocking critical. Restore explicitly:
+When three distinct fingerprints on the same `(checkId, surface)` have been dismissed, the entire surface auto-mutes and any **new** fingerprint of the same kind is suppressed too (saves you from dismissing endless variants). Restore explicitly — this also clears the single-fingerprint dismisses for that surface:
 
 ```bash
 npx releaselens unmute <checkId> --surface <id>

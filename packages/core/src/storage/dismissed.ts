@@ -65,6 +65,14 @@ export function removeMute(
   return next;
 }
 
+/** A specific fingerprint has been explicitly dismissed → hide that exact finding. */
+export function isFingerprintDismissed(
+  dismissed: Dismissed,
+  fingerprint: string,
+): boolean {
+  return dismissed.entries.some((e) => e.fingerprint === fingerprint);
+}
+
 export function isAutoMuted(
   dismissed: Dismissed,
   checkId: string,

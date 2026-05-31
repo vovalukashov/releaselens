@@ -2,7 +2,11 @@ import { resolve } from 'node:path';
 import type { ReleaseLensConfig } from './config.js';
 import { defaultChecks } from './checks/index.js';
 import { readBaseline } from './storage/baseline.js';
-import { isAutoMuted, readDismissed } from './storage/dismissed.js';
+import {
+  isAutoMuted,
+  isFingerprintDismissed,
+  readDismissed,
+} from './storage/dismissed.js';
 import { computeFingerprint, getSurface } from './storage/fingerprint.js';
 import type {
   CheckContext,
@@ -43,6 +47,7 @@ export async function runChecks(
     ? withFingerprints
     : withFingerprints.filter((r) => {
         if (baselineSet.has(r.fingerprint)) return false;
+        if (isFingerprintDismissed(dismissed, r.fingerprint)) return false;
         const surface = getSurface(r);
         const threshold =
           config.rules[r.checkId]?.autoMuteAfter ?? DEFAULT_AUTO_MUTE_AFTER;
