@@ -46,12 +46,14 @@ export default defineReleaseLens({
     },
   ],
   forms: [
-    {
-      id: 'pricing-lead',
-      onRoute: 'pricing',
-      selector: '[data-form=pricing-lead]',
-      successState: { type: 'route', value: '/thank-you' },
-    },
+    // Match by any string attribute — data-form, name, id, aria-label,
+    // data-testid, role, etc. Multiple clauses are ANDed.
+    { id: 'pricing-lead', onRoute: 'pricing', selector: '[data-form=pricing-lead]',  successState: { type: 'route', value: '/thank-you' } },
+    { id: 'subscribe',    onRoute: 'home',    selector: '[name=email-subscribe]',    successState: { type: 'route', value: '/thanks' } },
+    { id: 'book-demo',    onRoute: 'pricing', selector: '[id=demo][aria-label="Book a demo"]', successState: { type: 'route', value: '/demo-thanks' } },
+    // Or by file path suffix — useful for react-hook-form patterns that have
+    // no identifying attribute on the <form> tag.
+    { id: 'lead',         onRoute: 'pricing', selector: 'file:book-a-demo-call/client.tsx',    successState: { type: 'route', value: '/ok' } },
   ],
   events: [
     {

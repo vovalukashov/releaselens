@@ -1,10 +1,16 @@
 import ts from 'typescript';
 
 export interface ParsedForm {
-  dataForm?: string;
-  action?: string;
+  /** All string-valued attributes on the `<form>` element (data-form, name, id, aria-label, action, role, …). */
+  attrs: Record<string, string>;
   hasOnSubmit: boolean;
   hasSubmitButton: boolean;
+  /** Source file path the form was found in (relative or absolute, as passed to `parseJsxForms`). */
+  file: string;
+  /** Legacy convenience accessor — equivalent to `attrs['data-form']`. */
+  dataForm?: string;
+  /** Legacy convenience accessor — equivalent to `attrs.action`. */
+  action?: string;
 }
 
 export function parseJsxForms(
@@ -25,7 +31,7 @@ export function parseJsxForms(
 
   function visit(node: ts.Node): void {
     if (isFormJsx(node)) {
-      forms.push(extractForm(node));
+      forms.push(extractForm(node, fileName));
     }
     ts.forEachChild(node, visit);
   }
@@ -48,21 +54,28 @@ function getTagName(node: ts.JsxTagNameExpression): string | undefined {
 
 function extractForm(
   node: ts.JsxElement | ts.JsxSelfClosingElement,
+  file: string,
 ): ParsedForm {
   const attributes =
     ts.isJsxElement(node)
       ? node.openingElement.attributes
       : node.attributes;
-  const attrs = readAttrs(attributes);
-  const form: ParsedForm = {
-    hasOnSubmit: Object.prototype.hasOwnProperty.call(attrs, 'onSubmit'),
-    hasSubmitButton: ts.isJsxElement(node) ? hasSubmitDescendant(node) : false,
-  };
-  if (typeof attrs['data-form'] === 'string') {
-    form.dataForm = attrs['data-form'];
+  const rawAttrs = readAttrs(attributes);
+  const stringAttrs: Record<string, string> = {};
+  for (const [k, v] of Object.entries(rawAttrs)) {
+    if (typeof v === 'string') stringAttrs[k] = v;
   }
-  if (typeof attrs.action === 'string') {
-    form.action = attrs.action;
+  const form: ParsedForm = {
+    attrs: stringAttrs,
+    hasOnSubmit: Object.prototype.hasOwnProperty.call(rawAttrs, 'onSubmit'),
+    hasSubmitButton: ts.isJsxElement(node) ? hasSubmitDescendant(node) : false,
+    file,
+  };
+  if (typeof rawAttrs['data-form'] === 'string') {
+    form.dataForm = rawAttrs['data-form'];
+  }
+  if (typeof rawAttrs.action === 'string') {
+    form.action = rawAttrs.action;
   }
   return form;
 }
