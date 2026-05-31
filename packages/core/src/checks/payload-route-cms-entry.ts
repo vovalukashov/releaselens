@@ -23,6 +23,7 @@ export const payloadRouteCmsEntryCheck: Check = {
       return [
         {
           checkId: CHECK_ID,
+          issueKey: 'payload-config-not-found',
           severity: 'critical',
           confidence: 'high',
           message: `adapters.payload.config "${payloadCfg.config}" not found at ${absConfig}.`,
@@ -37,6 +38,7 @@ export const payloadRouteCmsEntryCheck: Check = {
       return [
         {
           checkId: CHECK_ID,
+          issueKey: 'payload-load-failed',
           severity: 'warning',
           confidence: 'low',
           message: `Failed to load Payload config: ${(err as Error).message}`,
@@ -53,6 +55,7 @@ export const payloadRouteCmsEntryCheck: Check = {
       if (!collectionSlugs.has(cms.collection)) {
         results.push({
           checkId: CHECK_ID,
+          issueKey: 'cms-collection-missing',
           severity: 'critical',
           confidence: 'high',
           message: `Route "${route.id}" binds to CMS collection "${cms.collection}" but no such collection exists in the Payload config (${payloadCfg.config}).`,

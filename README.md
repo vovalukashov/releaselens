@@ -86,6 +86,39 @@ jobs:
 
 See [`actions/releaselens-check`](./actions/releaselens-check) for inputs and notes.
 
+## FP-budget (baseline + dismiss + auto-mute)
+
+ReleaseLens is opinionated about *not* drowning you in legacy noise. Three layered mechanisms keep the signal high:
+
+### Baseline
+
+```bash
+npx releaselens check --update-baseline   # snapshot current findings
+git add .releaselens/baseline.json
+```
+
+`.releaselens/baseline.json` stores a fingerprint per finding so subsequent runs surface only **new** issues. Each fingerprint is `sha1(checkId + issueKey + route + form + event + locale)` — two different issues on the same surface (e.g. `missing-canonical` and `missing-hreflang` on `/pricing`) get **distinct** fingerprints, so resolving one does not silently unmute the other. The schema is versioned (currently `v2`); a legacy baseline triggers a warning telling you to re-snapshot.
+
+### Dismiss
+
+```bash
+npx releaselens dismiss <fingerprint> --reason "legacy, pending redesign"
+```
+
+Persists in `.releaselens/dismissed.json`. Use this when a finding is correct but intentionally ignored — leaves an auditable reason.
+
+### Auto-mute
+
+If you dismiss the same `(checkId, surface)` three times in a row, the check auto-mutes that surface and emits an `info` finding the next run instead of a blocking critical. Restore explicitly:
+
+```bash
+npx releaselens unmute <checkId> --surface <id>
+```
+
+### Confidence levels
+
+Each finding carries `high | medium | low` confidence. Low-confidence criticals **do not block CI** even with `--ci` — they show up as warnings so spread-driven or dynamic-metadata cases (e.g. `return setMetadata({ ...getLocaleMetadata(...) })`) do not produce false-positive failures.
+
 ## Packages
 
 | Package | Description |

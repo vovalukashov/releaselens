@@ -14,6 +14,7 @@ export const formReferencesRouteCheck: Check = {
       if (!routeIds.has(form.onRoute)) {
         results.push({
           checkId: 'form-references-route',
+          issueKey: 'form-route-undeclared',
           severity: 'critical',
           confidence: 'high',
           message: `Form "${form.id}" references route "${form.onRoute}" which is not declared.`,

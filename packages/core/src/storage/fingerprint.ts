@@ -4,6 +4,7 @@ import type { CheckResult } from '../types.js';
 export function computeFingerprint(result: CheckResult): string {
   const parts = [
     result.checkId,
+    result.issueKey ?? '',
     result.route ?? '',
     result.form ?? '',
     result.event ?? '',

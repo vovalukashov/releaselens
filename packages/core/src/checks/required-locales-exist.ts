@@ -17,6 +17,7 @@ export const requiredLocalesExistCheck: Check = {
         if (!declared.has(locale)) {
           results.push({
             checkId: 'required-locales-exist',
+            issueKey: 'locale-not-declared',
             severity: 'critical',
             confidence: 'high',
             message: `Route "${route.id}" requires locale "${locale}" which is not declared in locales [${config.locales.join(', ')}].`,

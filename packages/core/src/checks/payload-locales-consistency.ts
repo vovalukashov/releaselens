@@ -35,6 +35,7 @@ export const payloadLocalesConsistencyCheck: Check = {
       if (!payloadLocales.has(locale)) {
         results.push({
           checkId: CHECK_ID,
+          issueKey: 'payload-locale-config-only',
           severity: 'critical',
           confidence: 'high',
           message: `Locale "${locale}" declared in releaselens.config.locales but not present in Payload localization.locales [${[...payloadLocales].join(', ')}].`,
@@ -47,6 +48,7 @@ export const payloadLocalesConsistencyCheck: Check = {
       if (!configLocales.has(locale)) {
         results.push({
           checkId: CHECK_ID,
+          issueKey: 'payload-locale-payload-only',
           severity: 'warning',
           confidence: 'high',
           message: `Locale "${locale}" exists in Payload localization but is not declared in releaselens.config.locales — checks will skip it.`,
@@ -62,6 +64,7 @@ export const payloadLocalesConsistencyCheck: Check = {
     ) {
       results.push({
         checkId: CHECK_ID,
+        issueKey: 'payload-default-locale-mismatch',
         severity: 'critical',
         confidence: 'high',
         message: `defaultLocale mismatch: releaselens.config has "${config.defaultLocale}" but Payload has "${model.localization.defaultLocale}".`,

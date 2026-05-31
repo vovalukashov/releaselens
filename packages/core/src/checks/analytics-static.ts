@@ -32,6 +32,7 @@ export const analyticsStaticCheck: Check = {
       if (!trackedNames.has(event.name)) {
         results.push({
           checkId: CHECK_ID,
+          issueKey: 'event-not-tracked',
           severity: 'critical',
           confidence: 'high',
           message: `Event "${event.name}" declared in releaselens.config but no tracking call found under ${config.appDir}.`,
@@ -45,6 +46,7 @@ export const analyticsStaticCheck: Check = {
       if (!declaredNames.has(name)) {
         results.push({
           checkId: CHECK_ID,
+          issueKey: 'event-undeclared',
           severity: 'warning',
           confidence: 'medium',
           message: `Tracking call \`${name}\` exists but is not declared in releaselens.config events.`,

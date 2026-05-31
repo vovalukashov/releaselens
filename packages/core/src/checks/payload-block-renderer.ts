@@ -43,6 +43,7 @@ export const payloadBlockRendererCheck: Check = {
       if (!hit) {
         results.push({
           checkId: CHECK_ID,
+          issueKey: 'payload-block-no-renderer',
           severity: 'critical',
           confidence: 'medium',
           message: `Payload block "${blockName}" has no matching frontend component (looked for: ${variants.join(', ')}) in [${config.frontendDirs.join(', ')}].`,

@@ -4,6 +4,13 @@ export type { Severity, Confidence };
 
 export interface CheckResult {
   checkId: string;
+  /**
+   * Stable, normalized identifier for the specific issue this finding raises
+   * (e.g. `missing-canonical`, `missing-hreflang`, `no-page-file`). Included
+   * in the fingerprint so two findings of different kinds on the same surface
+   * do not collide in the FP-budget baseline.
+   */
+  issueKey?: string;
   severity: Severity;
   confidence: Confidence;
   message: string;

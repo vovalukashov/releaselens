@@ -19,6 +19,7 @@ export const seoStaticCheck: Check = {
     if (!existsSync(appDir)) {
       results.push({
         checkId: CHECK_ID,
+        issueKey: 'app-dir-not-found',
         severity: 'info',
         confidence: 'low',
         message: `appDir "${config.appDir}" not found at ${appDir} — SEO static check skipped. Configure \`appDir\` in your releaselens.config.ts to enable.`,
@@ -31,6 +32,7 @@ export const seoStaticCheck: Check = {
       if (!pageFile) {
         results.push({
           checkId: CHECK_ID,
+          issueKey: 'no-page-file',
           severity: 'critical',
           confidence: 'high',
           message: `Route "${route.id}": no page file found under ${appDir}${route.path === '/' ? '' : route.path}/page.{tsx,ts,jsx,js}.`,
@@ -44,6 +46,7 @@ export const seoStaticCheck: Check = {
       if (pageMeta.hasGenerateMetadata && !pageMeta.hasMetadata) {
         results.push({
           checkId: CHECK_ID,
+          issueKey: 'dynamic-generate-metadata',
           severity: 'info',
           confidence: 'low',
           message: `Route "${route.id}": uses dynamic \`generateMetadata\` — static SEO verification skipped.`,
@@ -60,6 +63,7 @@ export const seoStaticCheck: Check = {
       if (!meta.hasMetadata) {
         results.push({
           checkId: CHECK_ID,
+          issueKey: 'no-metadata',
           severity: 'warning',
           confidence: 'high',
           message: `Route "${route.id}": no \`metadata\` or \`generateMetadata\` export found in ${relativePath(cwd, pageFile)} or its layouts.`,
@@ -76,6 +80,7 @@ export const seoStaticCheck: Check = {
       if (!meta.hasTitle) {
         results.push({
           checkId: CHECK_ID,
+          issueKey: 'missing-title',
           severity: 'critical',
           confidence: presenceConfidence,
           message: `Route "${route.id}": missing \`metadata.title\` (not set on the page or any layout)${spreadNote}.`,
@@ -85,6 +90,7 @@ export const seoStaticCheck: Check = {
       if (!meta.hasDescription) {
         results.push({
           checkId: CHECK_ID,
+          issueKey: 'missing-description',
           severity: 'warning',
           confidence: presenceConfidence,
           message: `Route "${route.id}": missing \`metadata.description\` (not set on the page or any layout)${spreadNote}.`,
@@ -94,6 +100,7 @@ export const seoStaticCheck: Check = {
       if (route.businessImpact === 'high' && !meta.hasCanonical) {
         results.push({
           checkId: CHECK_ID,
+          issueKey: 'missing-canonical',
           severity: 'critical',
           confidence: presenceConfidence,
           message: `Route "${route.id}" (businessImpact=high): missing \`metadata.alternates.canonical\`${spreadNote}.`,
@@ -103,6 +110,7 @@ export const seoStaticCheck: Check = {
       if (route.locales && route.locales.length > 1 && !meta.hasHreflang) {
         results.push({
           checkId: CHECK_ID,
+          issueKey: 'missing-hreflang',
           severity: 'warning',
           confidence: presenceConfidence,
           message: `Route "${route.id}" declares ${route.locales.length} locales but \`metadata.alternates.languages\` (hreflang) is not set${spreadNote}.`,
@@ -112,6 +120,7 @@ export const seoStaticCheck: Check = {
       if (route.businessImpact === 'high' && meta.robotsIndex === false) {
         results.push({
           checkId: CHECK_ID,
+          issueKey: 'noindex-on-business-critical',
           severity: 'critical',
           confidence: 'high',
           message: `Route "${route.id}" (businessImpact=high): \`robots.index\` is false (noindex) — probably accidental.`,

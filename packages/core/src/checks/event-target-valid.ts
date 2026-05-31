@@ -15,6 +15,7 @@ export const eventTargetValidCheck: Check = {
       if (event.onForm && !formIds.has(event.onForm)) {
         results.push({
           checkId: 'event-target-valid',
+          issueKey: 'event-form-undeclared',
           severity: 'critical',
           confidence: 'high',
           message: `Event "${event.name}" targets form "${event.onForm}" which is not declared.`,
@@ -25,6 +26,7 @@ export const eventTargetValidCheck: Check = {
       if (event.onRoute && !routeIds.has(event.onRoute)) {
         results.push({
           checkId: 'event-target-valid',
+          issueKey: 'event-route-undeclared',
           severity: 'critical',
           confidence: 'high',
           message: `Event "${event.name}" targets route "${event.onRoute}" which is not declared.`,

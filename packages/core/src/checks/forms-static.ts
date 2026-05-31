@@ -36,6 +36,7 @@ export const formsStaticCheck: Check = {
       if (!dataFormToken) {
         results.push({
           checkId: CHECK_ID,
+          issueKey: 'selector-missing-data-form',
           severity: 'info',
           confidence: 'low',
           message: `Form "${form.id}": selector \`${form.selector}\` does not include a \`data-form\` attribute — static lookup limited.`,
@@ -49,6 +50,7 @@ export const formsStaticCheck: Check = {
       if (!match) {
         results.push({
           checkId: CHECK_ID,
+          issueKey: 'form-not-found',
           severity: 'critical',
           confidence: 'high',
           message: `Form "${form.id}"${routeRef}: no <form data-form="${dataFormToken}"> found anywhere under ${config.appDir}.`,
@@ -61,6 +63,7 @@ export const formsStaticCheck: Check = {
       if (!match.action && !match.hasOnSubmit && !match.hasSubmitButton) {
         results.push({
           checkId: CHECK_ID,
+          issueKey: 'submit-mechanism-missing',
           severity: 'warning',
           confidence: 'high',
           message: `Form "${form.id}"${routeRef}: no submit mechanism detected (missing action, onSubmit, or submit button).`,

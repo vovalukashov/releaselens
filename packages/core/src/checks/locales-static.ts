@@ -33,6 +33,7 @@ export const localesStaticCheck: Check = {
         if (!localizedPage) {
           results.push({
             checkId: CHECK_ID,
+            issueKey: 'locale-page-missing',
             severity: 'critical',
             confidence: 'high',
             message: `Route "${route.id}" declares locale "${locale}" but no localized page file found at ${config.appDir}/${locale}${route.path === '/' ? '' : route.path}/page.{tsx,ts,jsx,js}.`,
@@ -52,6 +53,7 @@ export const localesStaticCheck: Check = {
         if (defaultMeta.hasMetadata && !localizedMeta.hasMetadata && !localizedMeta.hasGenerateMetadata) {
           results.push({
             checkId: CHECK_ID,
+            issueKey: 'localized-metadata-missing',
             severity: 'warning',
             confidence: 'high',
             message: `Route "${route.id}" locale "${locale}": default has metadata but localized variant has no \`metadata\` or \`generateMetadata\` export.`,
@@ -64,6 +66,7 @@ export const localesStaticCheck: Check = {
         if (defaultMeta.title && !localizedMeta.title) {
           results.push({
             checkId: CHECK_ID,
+            issueKey: 'localized-title-missing',
             severity: 'warning',
             confidence: 'high',
             message: `Route "${route.id}" locale "${locale}": missing \`metadata.title\` (default locale has one).`,
@@ -74,6 +77,7 @@ export const localesStaticCheck: Check = {
         if (defaultMeta.canonical && !localizedMeta.canonical) {
           results.push({
             checkId: CHECK_ID,
+            issueKey: 'localized-canonical-missing',
             severity: 'critical',
             confidence: 'high',
             message: `Route "${route.id}" locale "${locale}": missing \`metadata.alternates.canonical\` (default locale has one).`,
@@ -88,6 +92,7 @@ export const localesStaticCheck: Check = {
         ) {
           results.push({
             checkId: CHECK_ID,
+            issueKey: 'localized-canonical-collision',
             severity: 'critical',
             confidence: 'high',
             message: `Route "${route.id}" locale "${locale}": canonical points to default-locale URL (\`${localizedMeta.canonical}\`) — should be locale-specific.`,
