@@ -97,4 +97,40 @@ describe('loadPayloadModel', () => {
     const names = model.collections[0]?.fields.map((f) => f.name).sort();
     expect(names).toEqual(['description', 'left', 'meta', 'right']);
   });
+
+  it('stubs unknown third-party imports (sharp, custom plugins, access helpers)', async () => {
+    const { dir } = writeConfig(`
+      import { buildConfig } from 'payload'
+      import { postgresAdapter } from '@payloadcms/db-postgres'
+      import { lexicalEditor } from '@payloadcms/richtext-lexical'
+      import sharp from 'sharp'
+      import { auditLogPlugin } from '@nowhere/plugin-audit-log'
+      import { access } from '@nowhere/payload-utils'
+
+      export default buildConfig({
+        collections: [
+          {
+            slug: 'agencies',
+            access: {
+              read: access.isAuthenticated,
+              create: access.isAuthenticated,
+            },
+            fields: [
+              { name: 'name', type: 'text' },
+              { name: 'website', type: 'text' },
+            ],
+          },
+        ],
+        globals: [],
+        localization: { locales: ['en'], defaultLocale: 'en' },
+        editor: lexicalEditor(),
+        db: postgresAdapter({ pool: { connectionString: '' } }),
+        sharp,
+        plugins: [auditLogPlugin({ enabled: true })],
+      })
+    `);
+    const model = await loadPayloadModel('./payload.config.ts', dir);
+    expect(model.collections.map((c) => c.slug)).toEqual(['agencies']);
+    expect(model.localization?.locales).toEqual(['en']);
+  });
 });
