@@ -4,8 +4,8 @@ export default defineConfig({
   entry: ['src/index.ts'],
   format: ['esm'],
   dts: true,
-  sourcemap: true,
+  sourcemap: false,
   clean: true,
-  target: 'node24',
+  target: 'node20',
   treeshake: true,
 });
