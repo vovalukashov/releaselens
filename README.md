@@ -75,6 +75,22 @@ export default defineReleaseLens({
 });
 ```
 
+## Localization models
+
+`locales-static` understands the two ways a Next.js App Router site does i18n:
+
+- **Subpath dirs** — a physical page tree per locale (`app/es/pricing/page.tsx`). For each route with `locales`, the check looks up the localized file and compares its metadata against the default locale (missing page, missing/duplicated canonical, etc.).
+- **Dynamic `[locale]` segment** (next-intl / next-i18next) — one physical page (`app/[locale]/[slug]/page.tsx`) serves every locale through the URL param. The check detects this automatically when a route path contains the locale segment and **does not** expect a per-locale file. Instead it flags a route that exports **static** `metadata`: a module-scope object can't read the `[locale]` param, so title, description and canonical would be identical for every locale and no hreflang is emitted — use `generateMetadata({ params })` to vary them per locale.
+
+The dynamic segment defaults to `[locale]`. If yours is named differently (e.g. `[lang]`), set `localeParam` at the config root:
+
+```ts
+export default defineReleaseLens({
+  localeParam: 'lang',
+  routes: [{ id: 'home', path: '/[lang]', locales: ['en', 'es'] }],
+});
+```
+
 ## GitHub Action
 
 ```yaml

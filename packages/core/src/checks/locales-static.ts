@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseSeoMetadata } from '../seo/parse-metadata.js';
 import { findPageFile } from './find-page-file.js';
+import type { Route } from '../config.js';
 import type { Check, CheckResult } from '../types.js';
 
 const CHECK_ID = 'locales-static';
@@ -17,9 +18,18 @@ export const localesStaticCheck: Check = {
     const appDir = resolve(cwd, config.appDir);
     if (!existsSync(appDir)) return results;
 
+    const localeParam = config.localeParam;
+
     for (const route of config.routes) {
       const locales = route.locales;
       if (!locales || locales.length === 0) continue;
+
+      if (routeHasLocaleSegment(route.path, localeParam)) {
+        results.push(
+          ...checkDynamicSegmentRoute(appDir, route, locales, localeParam),
+        );
+        continue;
+      }
 
       const defaultPage = findPageFile(appDir, route.path);
       const defaultMeta = defaultPage
@@ -106,3 +116,53 @@ export const localesStaticCheck: Check = {
     return results;
   },
 };
+
+function routeHasLocaleSegment(routePath: string, localeParam: string): boolean {
+  const token = `[${localeParam}]`;
+  return routePath.split('/').includes(token);
+}
+
+/**
+ * next-intl-style routing: a single physical page (e.g. `app/[locale]/[slug]`)
+ * serves every locale through the dynamic segment. There is no per-locale file
+ * to look up, so instead we verify the page produces *per-locale* metadata.
+ * A static `metadata` export cannot read the locale param, so its title,
+ * description and canonical are identical for every locale — a localization bug.
+ */
+function checkDynamicSegmentRoute(
+  appDir: string,
+  route: Route,
+  locales: string[],
+  localeParam: string,
+): CheckResult[] {
+  const results: CheckResult[] = [];
+
+  const page = findPageFile(appDir, route.path);
+  if (!page) {
+    results.push({
+      checkId: CHECK_ID,
+      issueKey: 'locale-page-missing',
+      severity: 'critical',
+      confidence: 'high',
+      message: `Route "${route.id}" uses a dynamic "[${localeParam}]" locale segment but no page file resolves for ${route.path}.`,
+      route: route.id,
+    });
+    return results;
+  }
+
+  const meta = parseSeoMetadata(readFileSync(page, 'utf8'), page);
+
+  if (meta.hasMetadata && !meta.hasGenerateMetadata) {
+    const dynamicish = meta.hasMetadataSpread || meta.hasMetadataHelperWrap;
+    results.push({
+      checkId: CHECK_ID,
+      issueKey: 'static-metadata-on-localized-route',
+      severity: 'warning',
+      confidence: dynamicish ? 'low' : 'high',
+      message: `Route "${route.id}" serves ${locales.length} locales via the "[${localeParam}]" segment but exports static \`metadata\` — title, description and canonical will be identical for every locale and no hreflang is emitted. Use \`generateMetadata({ params })\` to vary metadata per locale.`,
+      route: route.id,
+    });
+  }
+
+  return results;
+}

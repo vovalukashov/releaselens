@@ -124,6 +124,13 @@ export const ReleaseLensConfigSchema = z
     previewUrl: PreviewSourceSchema.default({ source: 'vercel' }),
     locales: z.array(z.string().min(1)).default([]),
     defaultLocale: z.string().min(1).optional(),
+    /**
+     * Name of the dynamic App Router segment that carries the locale
+     * (`[locale]` by default). When a route's path contains this segment,
+     * locales-static treats it as next-intl-style dynamic routing — one physical
+     * page serves every locale — instead of expecting a per-locale subpath dir.
+     */
+    localeParam: z.string().min(1).default('locale'),
     routes: z.array(RouteSchema).default([]),
     forms: z.array(FormSchema).default([]),
     events: z.array(EventSchema).default([]),
