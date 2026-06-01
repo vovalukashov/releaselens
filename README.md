@@ -8,7 +8,7 @@ Not an AI code review. Not synthetic monitoring. Not visual regression. Not a CM
 
 ## Status
 
-Pre-alpha — Month 6 (final) of 6-month execution. Day-180 evaluation pending. All 10 default checks live (SEO, forms, analytics, locales, Payload CMS, plus 4 config-integrity checks). GitHub Action + FP-budget + AI explanations + hosted cloud scaffold all shipped. See the [Linear project](https://linear.app/vovas-workspace/project/releaselens-b530bf7260a9) for the live roadmap.
+Pre-alpha. All 10 default checks are live (SEO, forms, analytics, locales, Payload CMS, plus 3 config-integrity checks). The GitHub Action, FP-budget model, AI explanations, and a hosted cloud scaffold are all shipped.
 
 ## Quickstart
 
@@ -123,7 +123,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version: '20'
       - uses: vovalukashov/releaselens/actions/releaselens-check@main
 ```
 
