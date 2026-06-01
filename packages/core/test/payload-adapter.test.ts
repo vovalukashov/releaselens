@@ -98,23 +98,18 @@ describe('loadPayloadModel', () => {
     expect(names).toEqual(['description', 'left', 'meta', 'right']);
   });
 
-  it('stubs unknown third-party imports (sharp, custom plugins, access helpers)', async () => {
+  it('stubs known payload-ecosystem imports (sharp, db adapter, richtext, storage)', async () => {
     const { dir } = writeConfig(`
       import { buildConfig } from 'payload'
       import { postgresAdapter } from '@payloadcms/db-postgres'
       import { lexicalEditor } from '@payloadcms/richtext-lexical'
+      import { s3Storage } from '@payloadcms/storage-s3'
       import sharp from 'sharp'
-      import { auditLogPlugin } from '@nowhere/plugin-audit-log'
-      import { access } from '@nowhere/payload-utils'
 
       export default buildConfig({
         collections: [
           {
             slug: 'agencies',
-            access: {
-              read: access.isAuthenticated,
-              create: access.isAuthenticated,
-            },
             fields: [
               { name: 'name', type: 'text' },
               { name: 'website', type: 'text' },
@@ -126,11 +121,29 @@ describe('loadPayloadModel', () => {
         editor: lexicalEditor(),
         db: postgresAdapter({ pool: { connectionString: '' } }),
         sharp,
-        plugins: [auditLogPlugin({ enabled: true })],
+        plugins: [s3Storage({ bucket: '' })],
       })
     `);
     const model = await loadPayloadModel('./payload.config.ts', dir);
     expect(model.collections.map((c) => c.slug)).toEqual(['agencies']);
     expect(model.localization?.locales).toEqual(['en']);
+  });
+
+  it('bounded-retry stubs an unknown third-party plugin not in STUB_MODULES', async () => {
+    const { dir } = writeConfig(`
+      import { buildConfig } from 'payload'
+      import { customPlugin } from '@unknown-vendor/custom-plugin'
+
+      export default buildConfig({
+        collections: [
+          { slug: 'pages', fields: [{ name: 'title', type: 'text' }] },
+        ],
+        globals: [],
+        localization: { locales: ['en'], defaultLocale: 'en' },
+        plugins: [customPlugin({ enabled: true })],
+      })
+    `);
+    const model = await loadPayloadModel('./payload.config.ts', dir);
+    expect(model.collections.map((c) => c.slug)).toEqual(['pages']);
   });
 });
