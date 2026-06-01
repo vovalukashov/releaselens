@@ -70,6 +70,8 @@ export default defineReleaseLens({
       'mixpanel.track',       // member access: mixpanel.track(name, …)
       '_sendEvent@1',         // name at arg 1: _sendEvent(host, name, …)
       'gtag:event',           // first arg must equal 'event'; built-in
+      'track#event',          // object arg: track({ event: name, … })
+      'logEvent@1#name',      // object at arg 1: logEvent(ctx, { name, … })
     ],
   },
 });

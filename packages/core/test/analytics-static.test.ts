@@ -106,4 +106,37 @@ describe('parseTrackingCalls', () => {
     const names = calls.map((c) => c.name).sort();
     expect(names).toEqual(['built_in', 'custom']);
   });
+
+  it('reads the event name from an object property (`callee#prop`)', () => {
+    const source = `
+      sendEvent({ eventName: 'slide_change', type: 'click' });
+      sendEvent({ eventName: 'tools_click' });
+    `;
+    const calls = parseTrackingCalls(source, 'x.ts', ['sendEvent#eventName']);
+    expect(calls.map((c) => c.name).sort()).toEqual([
+      'slide_change',
+      'tools_click',
+    ]);
+  });
+
+  it('combines `@n#prop` to read the object at a non-zero arg index', () => {
+    const source = `track(ctx, { event: 'signup' });`;
+    const calls = parseTrackingCalls(source, 'x.ts', ['track@1#event']);
+    expect(calls.map((c) => c.name)).toEqual(['signup']);
+  });
+
+  it('ignores a `#prop` call when the property is absent or non-literal', () => {
+    const source = `
+      sendEvent({ type: 'click' });
+      sendEvent({ eventName: dynamicName });
+    `;
+    const calls = parseTrackingCalls(source, 'x.ts', ['sendEvent#eventName']);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('reads a `#prop` name from a string-literal key', () => {
+    const source = `logEvent({ 'name': 'purchase' });`;
+    const calls = parseTrackingCalls(source, 'x.ts', ['logEvent#name']);
+    expect(calls.map((c) => c.name)).toEqual(['purchase']);
+  });
 });

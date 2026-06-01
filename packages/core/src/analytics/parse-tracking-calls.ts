@@ -18,8 +18,10 @@ interface TrackerSpec {
   raw: string;
   /** Dotted callee path — `['mixpanel','track']` or `['sendEvent']`. */
   path: string[];
-  /** Index of the argument that holds the event name (default 0). */
+  /** Index of the argument that holds the event name — or the object carrying `nameProp` (default 0). */
   nameArgIndex: number;
+  /** If set, the event name is read from this property of the object-literal argument at `nameArgIndex` (e.g. `eventName` for `sendEvent({ eventName: 'x' })`). */
+  nameProp?: string;
   /** If set, the call's first argument must equal this string literal (e.g. `'event'` for gtag). */
   requireFirstArg?: string;
 }
@@ -29,6 +31,8 @@ interface TrackerSpec {
  *   `<callee>`              — name at arg 0
  *   `<callee>@<n>`          — name at arg n
  *   `<callee>:<value>`      — name at arg 1; arg 0 must equal `<value>` (gtag-style)
+ *   `<callee>#<prop>`       — name read from property `<prop>` of the object at arg 0
+ *   `<callee>@<n>#<prop>`   — object at arg n
  *   `<callee>:<value>@<n>`  — combined
  * `<callee>` may be dotted (`mixpanel.track`, `window.dataLayer.push`).
  */
@@ -37,6 +41,17 @@ function parseSpec(raw: string): TrackerSpec | undefined {
   if (!trimmed) return undefined;
 
   let work = trimmed;
+
+  let nameProp: string | undefined;
+  const hashIdx = work.lastIndexOf('#');
+  if (hashIdx >= 0) {
+    const propStr = work.slice(hashIdx + 1).trim();
+    if (propStr) {
+      nameProp = propStr;
+      work = work.slice(0, hashIdx);
+    }
+  }
+
   let nameArgIndex: number | undefined;
   const atIdx = work.lastIndexOf('@');
   if (atIdx >= 0) {
@@ -56,7 +71,7 @@ function parseSpec(raw: string): TrackerSpec | undefined {
     if (!calleeRaw || !remainder) return undefined;
     requireFirstArg = remainder;
     work = calleeRaw;
-    if (nameArgIndex === undefined) nameArgIndex = 1;
+    if (nameArgIndex === undefined && nameProp === undefined) nameArgIndex = 1;
   }
 
   if (nameArgIndex === undefined) nameArgIndex = 0;
@@ -67,6 +82,7 @@ function parseSpec(raw: string): TrackerSpec | undefined {
     raw: trimmed,
     path,
     nameArgIndex,
+    ...(nameProp !== undefined ? { nameProp } : {}),
     ...(requireFirstArg !== undefined ? { requireFirstArg } : {}),
   };
 }
@@ -130,7 +146,11 @@ function extractTrackingCall(
         continue;
       }
     }
-    const name = readStringArg(args[spec.nameArgIndex]);
+    const arg = args[spec.nameArgIndex];
+    const name =
+      spec.nameProp !== undefined
+        ? readObjectPropString(arg, spec.nameProp)
+        : readStringArg(arg);
     if (name === undefined) continue;
     return { name, method: spec.raw, line: line + 1 };
   }
@@ -156,6 +176,23 @@ function readStringArg(node: ts.Expression | undefined): string | undefined {
   if (!node) return undefined;
   if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
     return node.text;
+  }
+  return undefined;
+}
+
+function readObjectPropString(
+  node: ts.Expression | undefined,
+  prop: string,
+): string | undefined {
+  if (!node || !ts.isObjectLiteralExpression(node)) return undefined;
+  for (const member of node.properties) {
+    if (!ts.isPropertyAssignment(member)) continue;
+    const key = ts.isIdentifier(member.name)
+      ? member.name.text
+      : ts.isStringLiteral(member.name)
+        ? member.name.text
+        : undefined;
+    if (key === prop) return readStringArg(member.initializer);
   }
   return undefined;
 }
