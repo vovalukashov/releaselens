@@ -122,6 +122,10 @@ function extractMetadataFields(
       result.hasMetadataSpread = true;
       continue;
     }
+    if (ts.isShorthandPropertyAssignment(prop)) {
+      markPresence(prop.name.text, result);
+      continue;
+    }
     if (!ts.isPropertyAssignment(prop)) continue;
     const key = getPropertyKey(prop);
     if (!key) continue;
@@ -262,6 +266,12 @@ function extractAlternates(
   result: SeoMetadata,
 ): void {
   for (const prop of obj.properties) {
+    if (ts.isShorthandPropertyAssignment(prop)) {
+      const key = prop.name.text;
+      if (key === 'canonical') result.hasCanonical = true;
+      else if (key === 'languages') result.hasHreflang = true;
+      continue;
+    }
     if (!ts.isPropertyAssignment(prop)) continue;
     const key = getPropertyKey(prop);
     if (!key) continue;
@@ -333,6 +343,13 @@ function readStringOrDefault(node: ts.Expression): string | undefined {
     }
   }
   return undefined;
+}
+
+function markPresence(key: string, result: SeoMetadata): void {
+  if (key === 'title') result.hasTitle = true;
+  else if (key === 'description') result.hasDescription = true;
+  else if (key === 'canonical') result.hasCanonical = true;
+  else if (key === 'languages') result.hasHreflang = true;
 }
 
 function getPropertyKey(prop: ts.PropertyAssignment): string | undefined {

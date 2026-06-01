@@ -182,6 +182,29 @@ describe('helper-wrapped generateMetadata', () => {
     expect(meta.hasMetadataSpread).toBe(true);
   });
 
+  it('recognises shorthand-property keys (`{ canonical }`, `{ title, description }`)', () => {
+    const source = `
+      const canonical = '...';
+      const title = '...';
+      export async function generateMetadata() {
+        return setMetadata({ canonical, title });
+      }
+    `;
+    const meta = parseSeoMetadata(source);
+    expect(meta.hasCanonical).toBe(true);
+    expect(meta.hasTitle).toBe(true);
+    expect(meta.hasDescription).toBe(false);
+  });
+
+  it('recognises shorthand `alternates: { canonical }`', () => {
+    const source = `
+      const canonical = '...';
+      export const metadata = { alternates: { canonical } };
+    `;
+    const meta = parseSeoMetadata(source);
+    expect(meta.hasCanonical).toBe(true);
+  });
+
   it('reads noIndex: true as robotsIndex=false', () => {
     const source = `
       export const metadata = setMetadata({ title: 'X', noIndex: true });
