@@ -281,6 +281,125 @@ describe('seoStaticCheck — confidence on dynamic metadata', () => {
   });
 });
 
+describe('parseSeoMetadata — default export + re-export', () => {
+  it('extracts `export default { title, description }`', () => {
+    const meta = parseSeoMetadata(
+      `export default { title: 'Home', description: 'D' };`,
+    );
+    expect(meta.hasMetadata).toBe(true);
+    expect(meta.hasTitle).toBe(true);
+    expect(meta.title).toBe('Home');
+    expect(meta.hasDescription).toBe(true);
+  });
+
+  it('resolves `export default identifier` bound to a local object', () => {
+    const meta = parseSeoMetadata(
+      `const metadata = { title: 'Home', alternates: { canonical: '/' } };\nexport default metadata;`,
+    );
+    expect(meta.hasTitle).toBe(true);
+    expect(meta.hasCanonical).toBe(true);
+  });
+
+  it('does not treat `export default function Page()` as metadata', () => {
+    const meta = parseSeoMetadata(
+      `export default function Page() { return null; }`,
+    );
+    expect(meta.hasMetadata).toBe(false);
+  });
+
+  it('records the specifier for `export { default as metadata } from`', () => {
+    const meta = parseSeoMetadata(
+      `export { default as metadata } from '@/contents/metadata';`,
+    );
+    expect(meta.metadataReexport).toBe('@/contents/metadata');
+    expect(meta.hasMetadata).toBe(false);
+  });
+
+  it('records the specifier for `export { metadata } from`', () => {
+    const meta = parseSeoMetadata(`export { metadata } from './meta';`);
+    expect(meta.metadataReexport).toBe('./meta');
+  });
+});
+
+describe('seoStaticCheck — metadata re-export resolution', () => {
+  it('resolves a relative re-export so the page is not flagged missing title', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rl-reexport-'));
+    mkdirSync(join(dir, 'app'), { recursive: true });
+    mkdirSync(join(dir, 'contents'), { recursive: true });
+    writeFileSync(
+      join(dir, 'app/layout.tsx'),
+      `export { default as metadata } from '../contents/meta';\nexport default function Root({ children }) { return children; }`,
+    );
+    writeFileSync(
+      join(dir, 'app/page.tsx'),
+      `export const metadata = { alternates: { canonical: '/' } };\nexport default function P() { return null; }`,
+    );
+    writeFileSync(
+      join(dir, 'contents/meta.ts'),
+      `const metadata = { title: 'Careers', description: 'Jobs' };\nexport default metadata;`,
+    );
+
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      routes: [{ id: 'home', path: '/', businessImpact: 'high' }],
+    });
+    const out = await seoStaticCheck.run({ config: cfg, cwd: dir });
+    expect(out.find((r) => r.issueKey === 'missing-title')).toBeUndefined();
+    expect(out.find((r) => r.issueKey === 'missing-description')).toBeUndefined();
+    expect(out.find((r) => r.issueKey === 'no-metadata')).toBeUndefined();
+  });
+
+  it('resolves a tsconfig `paths` alias re-export', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rl-reexport-'));
+    mkdirSync(join(dir, 'src/app'), { recursive: true });
+    mkdirSync(join(dir, 'src/contents'), { recursive: true });
+    writeFileSync(
+      join(dir, 'tsconfig.json'),
+      JSON.stringify({ compilerOptions: { paths: { '@/*': ['./src/*'] } } }),
+    );
+    writeFileSync(
+      join(dir, 'src/app/layout.tsx'),
+      `export { default as metadata } from '@/contents/meta';\nexport default function Root({ children }) { return children; }`,
+    );
+    writeFileSync(
+      join(dir, 'src/app/page.tsx'),
+      `export const metadata = { alternates: { canonical: '/' } };\nexport default function P() { return null; }`,
+    );
+    writeFileSync(
+      join(dir, 'src/contents/meta.ts'),
+      `export default { title: 'Careers', description: 'Jobs' };`,
+    );
+
+    const cfg = defineReleaseLens({
+      appDir: './src/app',
+      routes: [{ id: 'home', path: '/', businessImpact: 'high' }],
+    });
+    const out = await seoStaticCheck.run({ config: cfg, cwd: dir });
+    expect(out.find((r) => r.issueKey === 'missing-title')).toBeUndefined();
+    expect(out.find((r) => r.issueKey === 'missing-description')).toBeUndefined();
+  });
+
+  it('still flags missing title when the re-export target cannot be resolved', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rl-reexport-'));
+    mkdirSync(join(dir, 'app'), { recursive: true });
+    writeFileSync(
+      join(dir, 'app/layout.tsx'),
+      `export { default as metadata } from './nonexistent';\nexport default function Root({ children }) { return children; }`,
+    );
+    writeFileSync(
+      join(dir, 'app/page.tsx'),
+      `export const metadata = { description: 'D' };\nexport default function P() { return null; }`,
+    );
+
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      routes: [{ id: 'home', path: '/', businessImpact: 'medium' }],
+    });
+    const out = await seoStaticCheck.run({ config: cfg, cwd: dir });
+    expect(out.find((r) => r.issueKey === 'missing-title')).toBeDefined();
+  });
+});
+
 describe('mergeSeoMetadata', () => {
   it('inherits layout metadata into a page that defines none', () => {
     const layout = parseSeoMetadata(`

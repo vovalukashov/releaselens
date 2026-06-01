@@ -75,6 +75,15 @@ export default defineReleaseLens({
 });
 ```
 
+## SEO metadata resolution
+
+`seo-static` resolves a route's effective metadata the way Next.js does, then checks for missing title / description / canonical / hreflang / noindex. It understands:
+
+- inline `export const metadata = { … }` and `export async function generateMetadata()`;
+- helper wrappers (`export const metadata = setMetadata({ … })`);
+- layout cascade — a page inherits `metadata` declared in any parent `layout`;
+- **re-export from a separate module** — `export { default as metadata } from '@/contents/metadata'`. The check follows the specifier (relative paths and tsconfig `paths` aliases) into the module that holds the object and reads the real fields, so a page whose title/description live in a shared contents file is not falsely flagged.
+
 ## Localization models
 
 `locales-static` understands the two ways a Next.js App Router site does i18n:

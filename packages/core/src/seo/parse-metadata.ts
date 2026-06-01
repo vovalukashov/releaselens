@@ -12,6 +12,8 @@ export interface SeoMetadata {
   hasMetadataSpread: boolean;
   /** Metadata came from a helper-call (e.g. `setMetadata({ canonical })`) — the wrapper may fill defaults the parser cannot see. Used to downgrade confidence. */
   hasMetadataHelperWrap: boolean;
+  /** `export { default as metadata } from '...'` / `export { metadata } from '...'` — the metadata object lives in another module. Holds the import specifier so the caller can resolve and parse it. */
+  metadataReexport?: string;
   /** Literal values, populated only when the field is a string/object literal. */
   title?: string;
   description?: string;
@@ -72,10 +74,69 @@ export function parseSeoMetadata(
     ) {
       result.hasGenerateMetadata = true;
       extractFromGenerateMetadata(stmt, result);
+    } else if (ts.isExportAssignment(stmt) && !stmt.isExportEquals) {
+      extractFromDefaultExport(stmt.expression, sf, result);
+    } else if (
+      ts.isExportDeclaration(stmt) &&
+      stmt.moduleSpecifier &&
+      ts.isStringLiteral(stmt.moduleSpecifier) &&
+      stmt.exportClause &&
+      ts.isNamedExports(stmt.exportClause)
+    ) {
+      for (const el of stmt.exportClause.elements) {
+        if (el.name.text === 'metadata') {
+          result.metadataReexport = stmt.moduleSpecifier.text;
+        }
+      }
     }
   }
 
   return result;
+}
+
+/**
+ * `export default <expr>` where the file is a metadata module — an object
+ * literal, a helper call, or an identifier bound to a local object literal.
+ * A function/arrow default is the route's component, not metadata, so it is
+ * ignored.
+ */
+function extractFromDefaultExport(
+  expr: ts.Expression,
+  sf: ts.SourceFile,
+  result: SeoMetadata,
+): void {
+  if (ts.isObjectLiteralExpression(expr)) {
+    result.hasMetadata = true;
+    extractMetadataFields(expr, result);
+  } else if (ts.isCallExpression(expr)) {
+    extractFromHelperCall(expr, result);
+  } else if (ts.isIdentifier(expr)) {
+    const obj = findLocalObject(sf, expr.text);
+    if (obj) {
+      result.hasMetadata = true;
+      extractMetadataFields(obj, result);
+    }
+  }
+}
+
+function findLocalObject(
+  sf: ts.SourceFile,
+  name: string,
+): ts.ObjectLiteralExpression | undefined {
+  for (const s of sf.statements) {
+    if (!ts.isVariableStatement(s)) continue;
+    for (const d of s.declarationList.declarations) {
+      if (
+        ts.isIdentifier(d.name) &&
+        d.name.text === name &&
+        d.initializer &&
+        ts.isObjectLiteralExpression(d.initializer)
+      ) {
+        return d.initializer;
+      }
+    }
+  }
+  return undefined;
 }
 
 /**
