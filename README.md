@@ -147,7 +147,7 @@ npx releaselens unmute <checkId> --surface <id>
 
 ### Confidence levels
 
-Each finding carries `high | medium | low` confidence. Low-confidence criticals **do not block CI** even with `--ci` — they show up as warnings so spread-driven or dynamic-metadata cases (e.g. `return setMetadata({ ...getLocaleMetadata(...) })`) do not produce false-positive failures.
+Each finding carries `high | medium | low` confidence. Low-confidence criticals **do not block CI** even with `--ci` — they show up as warnings so dynamic-metadata cases do not produce false-positive failures. SEO missing-field findings are downgraded to low confidence whenever the metadata is dynamic: a spread (`return setMetadata({ ...getLocaleMetadata(...) })`), a helper wrapper, or a `generateMetadata` function — because a static parser cannot prove a field is absent when it is computed per request from params or the CMS.
 
 ## Packages
 

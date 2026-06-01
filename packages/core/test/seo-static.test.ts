@@ -1,4 +1,8 @@
+import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { defineReleaseLens, seoStaticCheck } from '../src/index.js';
 import { mergeSeoMetadata, parseSeoMetadata } from '../src/seo/parse-metadata.js';
 
 describe('parseSeoMetadata', () => {
@@ -236,6 +240,44 @@ describe('helper-wrapped generateMetadata', () => {
     `;
     const meta = parseSeoMetadata(source);
     expect(meta.robotsIndex).toBe(false);
+  });
+});
+
+describe('seoStaticCheck — confidence on dynamic metadata', () => {
+  function writePage(content: string): string {
+    const dir = mkdtempSync(join(tmpdir(), 'rl-seo-'));
+    mkdirSync(join(dir, 'app/post'), { recursive: true });
+    writeFileSync(join(dir, 'app/post/page.tsx'), content);
+    return dir;
+  }
+
+  it('downgrades missing-field findings to low confidence for generateMetadata', async () => {
+    const dir = writePage(
+      `export async function generateMetadata({ params }) { if (!params) return {}; return { title: 'Post' }; }\nexport default function P() { return null; }`,
+    );
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      routes: [{ id: 'post', path: '/post', businessImpact: 'high' }],
+    });
+    const out = await seoStaticCheck.run({ config: cfg, cwd: dir });
+    const desc = out.find((r) => r.issueKey === 'missing-description');
+    const canonical = out.find((r) => r.issueKey === 'missing-canonical');
+    expect(desc?.confidence).toBe('low');
+    expect(canonical?.confidence).toBe('low');
+    expect(out.find((r) => r.issueKey === 'missing-title')).toBeUndefined();
+  });
+
+  it('keeps high confidence for static metadata missing a field', async () => {
+    const dir = writePage(
+      `export const metadata = { title: 'Post' };\nexport default function P() { return null; }`,
+    );
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      routes: [{ id: 'post', path: '/post', businessImpact: 'high' }],
+    });
+    const out = await seoStaticCheck.run({ config: cfg, cwd: dir });
+    const desc = out.find((r) => r.issueKey === 'missing-description');
+    expect(desc?.confidence).toBe('high');
   });
 });
 
