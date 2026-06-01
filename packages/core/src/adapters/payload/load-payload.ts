@@ -25,17 +25,30 @@ const PAYLOAD_STUB = `
 const identity = (x) => x;
 const makeProxy = (target) => new Proxy(target || identity, {
   get(t, prop, receiver) {
-    if (prop === '__esModule') return true;
     if (prop === 'then') return undefined;
     if (typeof prop === 'symbol') return Reflect.get(t, prop, receiver);
     if (Object.prototype.hasOwnProperty.call(t, prop)) {
       return Reflect.get(t, prop, receiver);
     }
+    if (prop === '__esModule') return true;
     return makeProxy();
+  },
+  // jiti's CJS-interop checks \`__esModule\` via \`in\` and via property
+  // descriptor lookup, not just plain get — answer truthfully on both.
+  has(t, prop) {
+    if (prop === '__esModule') return true;
+    if (Object.prototype.hasOwnProperty.call(t, prop)) return true;
+    return true;
+  },
+  getOwnPropertyDescriptor(t, prop) {
+    const own = Object.getOwnPropertyDescriptor(t, prop);
+    if (own) return own;
+    return { configurable: true, enumerable: true, value: makeProxy(), writable: true };
   },
   apply() { return makeProxy(); },
 });
 const target = function () {};
+target.__esModule = true;
 target.buildConfig = identity;
 target.default = identity;
 module.exports = makeProxy(target);
