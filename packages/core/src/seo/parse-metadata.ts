@@ -10,6 +10,8 @@ export interface SeoMetadata {
   hasHreflang: boolean;
   /** A spread (e.g. `...getLocaleMetadata(...)`) appeared in the metadata object — fields may be set dynamically. Used to downgrade confidence on missing-field findings. */
   hasMetadataSpread: boolean;
+  /** Metadata came from a helper-call (e.g. `setMetadata({ canonical })`) — the wrapper may fill defaults the parser cannot see. Used to downgrade confidence. */
+  hasMetadataHelperWrap: boolean;
   /** Literal values, populated only when the field is a string/object literal. */
   title?: string;
   description?: string;
@@ -38,6 +40,7 @@ export function parseSeoMetadata(
     hasCanonical: false,
     hasHreflang: false,
     hasMetadataSpread: false,
+    hasMetadataHelperWrap: false,
   };
 
   for (const stmt of sf.statements) {
@@ -88,6 +91,7 @@ export function mergeSeoMetadata(layers: SeoMetadata[]): SeoMetadata {
     hasCanonical: false,
     hasHreflang: false,
     hasMetadataSpread: false,
+    hasMetadataHelperWrap: false,
   };
   for (const layer of layers) {
     if (layer.hasMetadata) merged.hasMetadata = true;
@@ -97,6 +101,7 @@ export function mergeSeoMetadata(layers: SeoMetadata[]): SeoMetadata {
     if (layer.hasCanonical) merged.hasCanonical = true;
     if (layer.hasHreflang) merged.hasHreflang = true;
     if (layer.hasMetadataSpread) merged.hasMetadataSpread = true;
+    if (layer.hasMetadataHelperWrap) merged.hasMetadataHelperWrap = true;
     if (layer.title !== undefined) merged.title = layer.title;
     if (layer.description !== undefined) merged.description = layer.description;
     if (layer.canonical !== undefined) merged.canonical = layer.canonical;
@@ -186,10 +191,14 @@ function extractFromHelperCall(
   for (const arg of call.arguments) {
     if (ts.isObjectLiteralExpression(arg)) {
       result.hasMetadata = true;
+      result.hasMetadataHelperWrap = true;
       extractMetadataFields(arg, result);
       return;
     }
   }
+  // Helper call with no literal argument still signals helper-wrap presence,
+  // so missing-field findings get downgraded to low confidence.
+  result.hasMetadataHelperWrap = true;
 }
 
 /**

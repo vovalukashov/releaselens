@@ -196,6 +196,31 @@ describe('helper-wrapped generateMetadata', () => {
     expect(meta.hasDescription).toBe(false);
   });
 
+  it('flags helper-wrap with hasMetadataHelperWrap so missing fields can be downgraded', () => {
+    const source = `
+      const canonical = '...';
+      export async function generateMetadata() {
+        return setMetadata({ canonical });
+      }
+    `;
+    const meta = parseSeoMetadata(source);
+    expect(meta.hasMetadataHelperWrap).toBe(true);
+    expect(meta.hasCanonical).toBe(true);
+    expect(meta.hasTitle).toBe(false);
+  });
+
+  it('does not set hasMetadataHelperWrap on a plain object literal', () => {
+    const source = `export const metadata = { title: 'x' };`;
+    const meta = parseSeoMetadata(source);
+    expect(meta.hasMetadataHelperWrap).toBe(false);
+  });
+
+  it('sets hasMetadataHelperWrap on `export const metadata = helperCall({...})`', () => {
+    const source = `export const metadata = setMetadata({ title: 'x' });`;
+    const meta = parseSeoMetadata(source);
+    expect(meta.hasMetadataHelperWrap).toBe(true);
+  });
+
   it('recognises shorthand `alternates: { canonical }`', () => {
     const source = `
       const canonical = '...';

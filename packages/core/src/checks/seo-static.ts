@@ -72,10 +72,13 @@ export const seoStaticCheck: Check = {
         continue;
       }
 
-      const presenceConfidence = meta.hasMetadataSpread ? 'low' : 'high';
+      const presenceConfidence =
+        meta.hasMetadataSpread || meta.hasMetadataHelperWrap ? 'low' : 'high';
       const spreadNote = meta.hasMetadataSpread
         ? ' (a spread is present, may be set dynamically)'
-        : '';
+        : meta.hasMetadataHelperWrap
+          ? ' (wrapped via a helper call — defaults may be applied outside the analysed file)'
+          : '';
 
       if (!meta.hasTitle) {
         results.push({
