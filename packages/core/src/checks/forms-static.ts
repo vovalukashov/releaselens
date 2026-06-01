@@ -71,7 +71,7 @@ export const formsStaticCheck: Check = {
         continue;
       }
 
-      if (!match.action && !match.hasOnSubmit && !match.hasSubmitButton) {
+      if (!match.hasAction && !match.hasOnSubmit && !match.hasSubmitButton) {
         results.push({
           checkId: CHECK_ID,
           issueKey: 'submit-mechanism-missing',

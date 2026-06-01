@@ -5,11 +5,13 @@ export interface ParsedForm {
   attrs: Record<string, string>;
   hasOnSubmit: boolean;
   hasSubmitButton: boolean;
+  /** An `action` prop is present — a string route (`action="/search"`) or a Server Action (`action={fn}`). Both are valid submit mechanisms. */
+  hasAction: boolean;
   /** Source file path the form was found in (relative or absolute, as passed to `parseJsxForms`). */
   file: string;
   /** Legacy convenience accessor — equivalent to `attrs['data-form']`. */
   dataForm?: string;
-  /** Legacy convenience accessor — equivalent to `attrs.action`. */
+  /** Legacy convenience accessor — equivalent to `attrs.action` (string actions only). */
   action?: string;
 }
 
@@ -25,24 +27,50 @@ export function parseJsxForms(
     ts.ScriptKind.TSX,
   );
 
+  const formTags = collectFormTagNames(sf);
   const forms: ParsedForm[] = [];
   visit(sf);
   return forms;
 
   function visit(node: ts.Node): void {
-    if (isFormJsx(node)) {
+    if (isFormJsx(node, formTags)) {
       forms.push(extractForm(node, fileName));
     }
     ts.forEachChild(node, visit);
   }
 }
 
-function isFormJsx(node: ts.Node): node is ts.JsxElement | ts.JsxSelfClosingElement {
+/**
+ * `<form>` plus any local name bound to a `next/form` default import — Next.js's
+ * `<Form>` primitive (`import Form from 'next/form'`) renders a real form and is
+ * the idiomatic search/filter form in the App Router.
+ */
+function collectFormTagNames(sf: ts.SourceFile): Set<string> {
+  const tags = new Set<string>(['form']);
+  for (const stmt of sf.statements) {
+    if (
+      ts.isImportDeclaration(stmt) &&
+      ts.isStringLiteral(stmt.moduleSpecifier) &&
+      stmt.moduleSpecifier.text === 'next/form' &&
+      stmt.importClause?.name
+    ) {
+      tags.add(stmt.importClause.name.text);
+    }
+  }
+  return tags;
+}
+
+function isFormJsx(
+  node: ts.Node,
+  formTags: Set<string>,
+): node is ts.JsxElement | ts.JsxSelfClosingElement {
   if (ts.isJsxElement(node)) {
-    return getTagName(node.openingElement.tagName) === 'form';
+    const tag = getTagName(node.openingElement.tagName);
+    return tag !== undefined && formTags.has(tag);
   }
   if (ts.isJsxSelfClosingElement(node)) {
-    return getTagName(node.tagName) === 'form';
+    const tag = getTagName(node.tagName);
+    return tag !== undefined && formTags.has(tag);
   }
   return false;
 }
@@ -69,6 +97,7 @@ function extractForm(
     attrs: stringAttrs,
     hasOnSubmit: Object.prototype.hasOwnProperty.call(rawAttrs, 'onSubmit'),
     hasSubmitButton: ts.isJsxElement(node) ? hasSubmitDescendant(node) : false,
+    hasAction: Object.prototype.hasOwnProperty.call(rawAttrs, 'action'),
     file,
   };
   if (typeof rawAttrs['data-form'] === 'string') {

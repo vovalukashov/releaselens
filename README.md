@@ -54,6 +54,9 @@ export default defineReleaseLens({
     // Or by file path suffix — useful for react-hook-form patterns that have
     // no identifying attribute on the <form> tag.
     { id: 'lead',         onRoute: 'pricing', selector: 'file:book-a-demo-call/client.tsx',    successState: { type: 'route', value: '/ok' } },
+    // Native `<form>`, the next/form `<Form action="/search">` primitive, and
+    // Server Action forms (`<form action={fn}>`) are all recognised; the
+    // `action` prop counts as a submit mechanism (so does onSubmit / a submit button).
   ],
   events: [
     {

@@ -60,8 +60,52 @@ describe('parseJsxForms', () => {
     `;
     const forms = parseJsxForms(source);
     expect(forms[0]?.action).toBeUndefined();
+    expect(forms[0]?.hasAction).toBe(false);
     expect(forms[0]?.hasOnSubmit).toBe(false);
     expect(forms[0]?.hasSubmitButton).toBe(false);
+  });
+
+  it('recognises a next/form `<Form>` and its string action', () => {
+    const source = `
+      import Form from 'next/form';
+      export default function Search() {
+        return (
+          <Form action="/search">
+            <input name="q" />
+          </Form>
+        );
+      }
+    `;
+    const forms = parseJsxForms(source);
+    expect(forms).toHaveLength(1);
+    expect(forms[0]?.hasAction).toBe(true);
+    expect(forms[0]?.action).toBe('/search');
+  });
+
+  it('treats a Server Action `action={fn}` as an action', () => {
+    const source = `
+      export function AddToCart() {
+        return (
+          <form action={async () => { await addItem(); }}>
+            <input name="id" />
+          </form>
+        );
+      }
+    `;
+    const forms = parseJsxForms(source);
+    expect(forms[0]?.hasAction).toBe(true);
+    expect(forms[0]?.action).toBeUndefined();
+  });
+
+  it('does not treat a non-next/form `<Form>` as a form', () => {
+    const source = `
+      import { Form } from 'react-final-form';
+      export function F() {
+        return <Form onSubmit={x}><input /></Form>;
+      }
+    `;
+    const forms = parseJsxForms(source);
+    expect(forms).toHaveLength(0);
   });
 
   it('captures all string attrs plus file path (forwarded into the check)', () => {
@@ -143,6 +187,29 @@ describe('formsStaticCheck selectors', () => {
           onRoute: 'subscribe',
           selector: '[name=email-form]',
           successState: { type: 'route', value: '/ok' },
+        },
+      ],
+    });
+    const results = await formsStaticCheck.run({ config: cfg, cwd });
+    expect(results).toHaveLength(0);
+  });
+
+  it('accepts a next/form `<Form action>` as a valid submit mechanism', async () => {
+    const abs = join(appDir, 'search/page.tsx');
+    mkdirSync(join(abs, '..'), { recursive: true });
+    writeFileSync(
+      abs,
+      `import Form from 'next/form';\nexport default function Search() { return (<Form action="/search"><input name="q" /></Form>); }`,
+    );
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      routes: [{ id: 'search', path: '/search' }],
+      forms: [
+        {
+          id: 'search',
+          onRoute: 'search',
+          selector: 'file:search/page.tsx',
+          successState: { type: 'route', value: '/search' },
         },
       ],
     });
