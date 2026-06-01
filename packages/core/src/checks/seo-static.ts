@@ -159,17 +159,22 @@ function relativePath(cwd: string, file: string): string {
  */
 function parseFileMetadata(
   file: string,
+  targetName = 'metadata',
   seen: Set<string> = new Set(),
 ): SeoMetadata {
-  const meta = parseSeoMetadata(readFileSync(file, 'utf8'), file);
-  if (!meta.metadataReexport || seen.has(file)) return meta;
+  const meta = parseSeoMetadata(readFileSync(file, 'utf8'), file, targetName);
+  if (!meta.metadataRefs?.length) return meta;
 
-  seen.add(file);
-  const target = resolveModuleFile(file, meta.metadataReexport);
-  if (!target) return meta;
-
-  const targetMeta = parseFileMetadata(target, seen);
-  return mergeSeoMetadata([targetMeta, meta]);
+  const layers: SeoMetadata[] = [];
+  for (const ref of meta.metadataRefs) {
+    const key = `${file}::${ref.from}::${ref.exportName}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const target = resolveModuleFile(file, ref.from);
+    if (target) layers.push(parseFileMetadata(target, ref.exportName, seen));
+  }
+  if (layers.length === 0) return meta;
+  return mergeSeoMetadata([...layers, meta]);
 }
 
 const MODULE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];

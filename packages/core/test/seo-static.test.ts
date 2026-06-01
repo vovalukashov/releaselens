@@ -307,17 +307,40 @@ describe('parseSeoMetadata — default export + re-export', () => {
     expect(meta.hasMetadata).toBe(false);
   });
 
-  it('records the specifier for `export { default as metadata } from`', () => {
+  it('records a ref for `export { default as metadata } from`', () => {
     const meta = parseSeoMetadata(
       `export { default as metadata } from '@/contents/metadata';`,
     );
-    expect(meta.metadataReexport).toBe('@/contents/metadata');
+    expect(meta.metadataRefs).toEqual([
+      { from: '@/contents/metadata', exportName: 'default' },
+    ]);
     expect(meta.hasMetadata).toBe(false);
   });
 
-  it('records the specifier for `export { metadata } from`', () => {
+  it('records a ref for `export { metadata } from`', () => {
     const meta = parseSeoMetadata(`export { metadata } from './meta';`);
-    expect(meta.metadataReexport).toBe('./meta');
+    expect(meta.metadataRefs).toEqual([
+      { from: './meta', exportName: 'metadata' },
+    ]);
+  });
+
+  it('records a ref for `export const metadata = importedBase`', () => {
+    const meta = parseSeoMetadata(
+      `import { defaultMetadata } from '@/lib/meta';\nexport const metadata = defaultMetadata;`,
+    );
+    expect(meta.metadataRefs).toEqual([
+      { from: '@/lib/meta', exportName: 'defaultMetadata' },
+    ]);
+    expect(meta.hasMetadata).toBe(false);
+  });
+
+  it('records a ref for a `...importedBase` spread', () => {
+    const meta = parseSeoMetadata(
+      `import { base } from './base';\nexport const metadata = { ...base, title: 'X' };`,
+    );
+    expect(meta.hasTitle).toBe(true);
+    expect(meta.hasMetadataSpread).toBe(true);
+    expect(meta.metadataRefs).toEqual([{ from: './base', exportName: 'base' }]);
   });
 });
 
@@ -377,6 +400,31 @@ describe('seoStaticCheck — metadata re-export resolution', () => {
     const out = await seoStaticCheck.run({ config: cfg, cwd: dir });
     expect(out.find((r) => r.issueKey === 'missing-title')).toBeUndefined();
     expect(out.find((r) => r.issueKey === 'missing-description')).toBeUndefined();
+  });
+
+  it('resolves an imported base via identifier-assignment and spread', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rl-reexport-'));
+    mkdirSync(join(dir, 'app'), { recursive: true });
+    mkdirSync(join(dir, 'contents'), { recursive: true });
+    writeFileSync(
+      join(dir, 'contents/base.ts'),
+      `export const defaultMetadata = { title: 'OS', description: 'D', alternates: { canonical: '/' } };`,
+    );
+    writeFileSync(
+      join(dir, 'app/layout.tsx'),
+      `import { defaultMetadata } from '../contents/base';\nexport const metadata = { ...defaultMetadata, openGraph: {} };\nexport default function Root({ children }) { return children; }`,
+    );
+    writeFileSync(
+      join(dir, 'app/page.tsx'),
+      `import { defaultMetadata } from '../contents/base';\nexport const metadata = defaultMetadata;\nexport default function P() { return null; }`,
+    );
+
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      routes: [{ id: 'home', path: '/', businessImpact: 'high' }],
+    });
+    const out = await seoStaticCheck.run({ config: cfg, cwd: dir });
+    expect(out).toHaveLength(0);
   });
 
   it('still flags missing title when the re-export target cannot be resolved', async () => {

@@ -84,7 +84,8 @@ export default defineReleaseLens({
 - inline `export const metadata = { … }` and `export async function generateMetadata()`;
 - helper wrappers (`export const metadata = setMetadata({ … })`);
 - layout cascade — a page inherits `metadata` declared in any parent `layout`;
-- **re-export from a separate module** — `export { default as metadata } from '@/contents/metadata'`. The check follows the specifier (relative paths and tsconfig `paths` aliases) into the module that holds the object and reads the real fields, so a page whose title/description live in a shared contents file is not falsely flagged.
+- **re-export from a separate module** — `export { default as metadata } from '@/contents/metadata'`. The check follows the specifier (relative paths and tsconfig `paths` aliases) into the module that holds the object and reads the real fields, so a page whose title/description live in a shared contents file is not falsely flagged;
+- **shared base metadata** — `export const metadata = defaultMetadata` (imported identifier) and spreads such as `export const metadata = { ...defaultMetadata, title: '…' }`. The imported base is resolved into its module and merged, so pages and layouts built on a common base object keep their inherited title/description/canonical.
 
 ## Localization models
 

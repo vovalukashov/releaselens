@@ -1,5 +1,12 @@
 import ts from 'typescript';
 
+export interface MetadataRef {
+  /** Import specifier of the module holding the metadata object. */
+  from: string;
+  /** Name of the export to read in that module (`default`, `metadata`, or any base name). */
+  exportName: string;
+}
+
 export interface SeoMetadata {
   hasMetadata: boolean;
   hasGenerateMetadata: boolean;
@@ -12,8 +19,13 @@ export interface SeoMetadata {
   hasMetadataSpread: boolean;
   /** Metadata came from a helper-call (e.g. `setMetadata({ canonical })`) — the wrapper may fill defaults the parser cannot see. Used to downgrade confidence. */
   hasMetadataHelperWrap: boolean;
-  /** `export { default as metadata } from '...'` / `export { metadata } from '...'` — the metadata object lives in another module. Holds the import specifier so the caller can resolve and parse it. */
-  metadataReexport?: string;
+  /**
+   * External modules whose metadata must be resolved and merged in. Produced by
+   * `export { default as metadata } from '...'`, `export const metadata = importedBase`,
+   * and `...importedBase` spreads. Each entry is the import specifier plus the
+   * export name to read in that module. The caller resolves them.
+   */
+  metadataRefs?: MetadataRef[];
   /** Literal values, populated only when the field is a string/object literal. */
   title?: string;
   description?: string;
@@ -25,6 +37,7 @@ export interface SeoMetadata {
 export function parseSeoMetadata(
   source: string,
   fileName = 'virtual.tsx',
+  targetName = 'metadata',
 ): SeoMetadata {
   const sf = ts.createSourceFile(
     fileName,
@@ -45,6 +58,8 @@ export function parseSeoMetadata(
     hasMetadataHelperWrap: false,
   };
 
+  const imports = buildImportMap(sf);
+
   for (const stmt of sf.statements) {
     if (ts.isVariableStatement(stmt) && hasExportModifier(stmt)) {
       for (const decl of stmt.declarationList.declarations) {
@@ -52,30 +67,38 @@ export function parseSeoMetadata(
         const name = decl.name.text;
         const init = decl.initializer;
 
-        if (name === 'metadata') {
+        if (name === targetName) {
           if (ts.isObjectLiteralExpression(init)) {
             result.hasMetadata = true;
-            extractMetadataFields(init, result);
+            extractMetadataFields(init, result, imports);
           } else if (ts.isCallExpression(init)) {
-            extractFromHelperCall(init, result);
+            extractFromHelperCall(init, result, imports);
+          } else if (ts.isIdentifier(init)) {
+            resolveIdentifierMetadata(init.text, sf, imports, result);
           }
         } else if (
+          targetName === 'metadata' &&
           name === 'generateMetadata' &&
           (ts.isArrowFunction(init) || ts.isFunctionExpression(init))
         ) {
           result.hasGenerateMetadata = true;
-          extractFromGenerateMetadata(init, result);
+          extractFromGenerateMetadata(init, result, imports);
         }
       }
     } else if (
+      targetName === 'metadata' &&
       ts.isFunctionDeclaration(stmt) &&
       hasExportModifier(stmt) &&
       stmt.name?.text === 'generateMetadata'
     ) {
       result.hasGenerateMetadata = true;
-      extractFromGenerateMetadata(stmt, result);
-    } else if (ts.isExportAssignment(stmt) && !stmt.isExportEquals) {
-      extractFromDefaultExport(stmt.expression, sf, result);
+      extractFromGenerateMetadata(stmt, result, imports);
+    } else if (
+      (targetName === 'metadata' || targetName === 'default') &&
+      ts.isExportAssignment(stmt) &&
+      !stmt.isExportEquals
+    ) {
+      extractFromDefaultExport(stmt.expression, sf, imports, result);
     } else if (
       ts.isExportDeclaration(stmt) &&
       stmt.moduleSpecifier &&
@@ -84,14 +107,69 @@ export function parseSeoMetadata(
       ts.isNamedExports(stmt.exportClause)
     ) {
       for (const el of stmt.exportClause.elements) {
-        if (el.name.text === 'metadata') {
-          result.metadataReexport = stmt.moduleSpecifier.text;
+        if (el.name.text === targetName) {
+          const orig = (el.propertyName ?? el.name).text;
+          pushRef(result, stmt.moduleSpecifier.text, orig);
         }
       }
     }
   }
 
   return result;
+}
+
+function buildImportMap(
+  sf: ts.SourceFile,
+): Map<string, { from: string; orig: string }> {
+  const map = new Map<string, { from: string; orig: string }>();
+  for (const stmt of sf.statements) {
+    if (
+      !ts.isImportDeclaration(stmt) ||
+      !stmt.importClause ||
+      !ts.isStringLiteral(stmt.moduleSpecifier)
+    ) {
+      continue;
+    }
+    const from = stmt.moduleSpecifier.text;
+    if (stmt.importClause.name) {
+      map.set(stmt.importClause.name.text, { from, orig: 'default' });
+    }
+    const bindings = stmt.importClause.namedBindings;
+    if (bindings && ts.isNamedImports(bindings)) {
+      for (const el of bindings.elements) {
+        map.set(el.name.text, {
+          from,
+          orig: (el.propertyName ?? el.name).text,
+        });
+      }
+    }
+  }
+  return map;
+}
+
+function pushRef(result: SeoMetadata, from: string, exportName: string): void {
+  (result.metadataRefs ??= []).push({ from, exportName });
+}
+
+/**
+ * `export const metadata = someIdentifier` — resolve the identifier to a local
+ * object literal (inline) or to an import (recorded as a ref for the caller to
+ * follow into the other module).
+ */
+function resolveIdentifierMetadata(
+  name: string,
+  sf: ts.SourceFile,
+  imports: Map<string, { from: string; orig: string }>,
+  result: SeoMetadata,
+): void {
+  const local = findLocalObject(sf, name);
+  if (local) {
+    result.hasMetadata = true;
+    extractMetadataFields(local, result, imports);
+    return;
+  }
+  const imported = imports.get(name);
+  if (imported) pushRef(result, imported.from, imported.orig);
 }
 
 /**
@@ -103,19 +181,16 @@ export function parseSeoMetadata(
 function extractFromDefaultExport(
   expr: ts.Expression,
   sf: ts.SourceFile,
+  imports: Map<string, { from: string; orig: string }>,
   result: SeoMetadata,
 ): void {
   if (ts.isObjectLiteralExpression(expr)) {
     result.hasMetadata = true;
-    extractMetadataFields(expr, result);
+    extractMetadataFields(expr, result, imports);
   } else if (ts.isCallExpression(expr)) {
-    extractFromHelperCall(expr, result);
+    extractFromHelperCall(expr, result, imports);
   } else if (ts.isIdentifier(expr)) {
-    const obj = findLocalObject(sf, expr.text);
-    if (obj) {
-      result.hasMetadata = true;
-      extractMetadataFields(obj, result);
-    }
+    resolveIdentifierMetadata(expr.text, sf, imports, result);
   }
 }
 
@@ -182,10 +257,15 @@ function hasExportModifier(node: ts.Node): boolean {
 function extractMetadataFields(
   obj: ts.ObjectLiteralExpression,
   result: SeoMetadata,
+  imports: Map<string, { from: string; orig: string }>,
 ): void {
   for (const prop of obj.properties) {
     if (ts.isSpreadAssignment(prop)) {
       result.hasMetadataSpread = true;
+      if (ts.isIdentifier(prop.expression)) {
+        const imported = imports.get(prop.expression.text);
+        if (imported) pushRef(result, imported.from, imported.orig);
+      }
       continue;
     }
     if (ts.isShorthandPropertyAssignment(prop)) {
@@ -248,12 +328,13 @@ function extractLanguages(node: ts.Expression, result: SeoMetadata): void {
 function extractFromHelperCall(
   call: ts.CallExpression,
   result: SeoMetadata,
+  imports: Map<string, { from: string; orig: string }>,
 ): void {
   for (const arg of call.arguments) {
     if (ts.isObjectLiteralExpression(arg)) {
       result.hasMetadata = true;
       result.hasMetadataHelperWrap = true;
-      extractMetadataFields(arg, result);
+      extractMetadataFields(arg, result, imports);
       return;
     }
   }
@@ -270,12 +351,13 @@ function extractFromHelperCall(
 function extractFromGenerateMetadata(
   fn: ts.FunctionLikeDeclaration,
   result: SeoMetadata,
+  imports: Map<string, { from: string; orig: string }>,
 ): void {
   const body = fn.body;
   if (!body) return;
 
   if (!ts.isBlock(body)) {
-    extractFromReturnExpr(body, result, new Map());
+    extractFromReturnExpr(body, result, new Map(), imports);
     return;
   }
 
@@ -295,7 +377,7 @@ function extractFromGenerateMetadata(
 
   for (const s of body.statements) {
     if (ts.isReturnStatement(s) && s.expression) {
-      extractFromReturnExpr(s.expression, result, locals);
+      extractFromReturnExpr(s.expression, result, locals, imports);
     }
   }
 }
@@ -304,29 +386,30 @@ function extractFromReturnExpr(
   expr: ts.Expression,
   result: SeoMetadata,
   locals: Map<string, ts.ObjectLiteralExpression>,
+  imports: Map<string, { from: string; orig: string }>,
 ): void {
   if (ts.isAwaitExpression(expr)) {
-    extractFromReturnExpr(expr.expression, result, locals);
+    extractFromReturnExpr(expr.expression, result, locals, imports);
     return;
   }
   if (ts.isParenthesizedExpression(expr)) {
-    extractFromReturnExpr(expr.expression, result, locals);
+    extractFromReturnExpr(expr.expression, result, locals, imports);
     return;
   }
   if (ts.isObjectLiteralExpression(expr)) {
     result.hasMetadata = true;
-    extractMetadataFields(expr, result);
+    extractMetadataFields(expr, result, imports);
     return;
   }
   if (ts.isCallExpression(expr)) {
-    extractFromHelperCall(expr, result);
+    extractFromHelperCall(expr, result, imports);
     return;
   }
   if (ts.isIdentifier(expr)) {
     const obj = locals.get(expr.text);
     if (obj) {
       result.hasMetadata = true;
-      extractMetadataFields(obj, result);
+      extractMetadataFields(obj, result, imports);
     }
   }
 }
