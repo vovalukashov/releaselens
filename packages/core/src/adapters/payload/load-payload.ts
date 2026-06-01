@@ -1,6 +1,6 @@
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { createJiti } from 'jiti';
 import type {
   BlockModel,
@@ -23,7 +23,10 @@ import type {
 const PAYLOAD_STUB = `
 "use strict";
 const identity = (x) => x;
-const makeProxy = (target) => new Proxy(target || identity, {
+// Regular function (not arrow) so the Proxy target is both callable AND
+// constructible — covers \`new SomeSdk()\` patterns in plugin code.
+const constructibleNoop = function noop() {};
+const makeProxy = (target) => new Proxy(target || constructibleNoop, {
   get(t, prop, receiver) {
     if (prop === 'then') return undefined;
     if (typeof prop === 'symbol') return Reflect.get(t, prop, receiver);
@@ -46,6 +49,7 @@ const makeProxy = (target) => new Proxy(target || identity, {
     return { configurable: true, enumerable: true, value: makeProxy(), writable: true };
   },
   apply() { return makeProxy(); },
+  construct() { return makeProxy(); },
 });
 const target = function () {};
 target.__esModule = true;
@@ -109,6 +113,12 @@ export async function loadPayloadModel(
 
   const alias: Record<string, string> = {};
   for (const name of STUB_MODULES) alias[name] = stubFile;
+  // Pre-scan the config + its relative dep graph for external specifiers
+  // (including sub-paths like `@payloadcms/storage-s3/utilities`) and stub
+  // each one exactly, side-stepping jiti's prefix-concat alias behaviour.
+  for (const spec of collectExternalSpecifiers(absPath)) {
+    alias[spec] = stubFile;
+  }
 
   try {
     // Bounded retry: each iteration tries to load the config; if the failure
@@ -142,6 +152,60 @@ export async function loadPayloadModel(
   } finally {
     rmSync(stubDir, { recursive: true, force: true });
   }
+}
+
+const SCAN_EXTENSIONS = ['.ts', '.tsx', '.mts', '.cts', '.mjs', '.cjs', '.js'];
+const NODE_BUILTINS = new Set([
+  'fs', 'fs/promises', 'path', 'os', 'url', 'crypto', 'stream', 'util', 'events',
+  'http', 'https', 'net', 'tls', 'zlib', 'child_process', 'worker_threads',
+  'buffer', 'querystring', 'string_decoder', 'timers', 'console', 'process',
+  'module', 'assert', 'cluster', 'dns', 'tty', 'vm', 'v8', 'readline', 'perf_hooks',
+  'node:fs', 'node:path', 'node:os', 'node:url', 'node:crypto', 'node:stream',
+  'node:util', 'node:events', 'node:buffer', 'node:process', 'node:module',
+]);
+
+function collectExternalSpecifiers(entry: string): Set<string> {
+  const result = new Set<string>();
+  const visited = new Set<string>();
+  walk(entry);
+  return result;
+
+  function walk(file: string): void {
+    if (visited.has(file) || !existsSync(file)) return;
+    visited.add(file);
+    let source: string;
+    try {
+      source = readFileSync(file, 'utf8');
+    } catch {
+      return;
+    }
+    const re = /(?:import|export)\s+(?:[\s\S]*?from\s+)?['"]([^'"]+)['"]|(?:^|[^.\w])require\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(source)) !== null) {
+      const spec = (m[1] ?? m[2] ?? '').trim();
+      if (!spec) continue;
+      if (spec.startsWith('.') || spec.startsWith('/')) {
+        const baseDir = dirname(file);
+        const target = resolveRelative(baseDir, spec);
+        if (target) walk(target);
+      } else if (!NODE_BUILTINS.has(spec) && !spec.startsWith('node:')) {
+        result.add(spec);
+      }
+    }
+  }
+}
+
+function resolveRelative(baseDir: string, spec: string): string | undefined {
+  const base = resolve(baseDir, spec);
+  for (const ext of SCAN_EXTENSIONS) {
+    if (existsSync(base + ext)) return base + ext;
+  }
+  for (const ext of SCAN_EXTENSIONS) {
+    const candidate = join(base, 'index' + ext);
+    if (existsSync(candidate)) return candidate;
+  }
+  if (existsSync(base)) return base;
+  return undefined;
 }
 
 function extractMissingModule(err: unknown): string | undefined {
