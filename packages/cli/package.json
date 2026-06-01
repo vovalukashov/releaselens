@@ -19,20 +19,25 @@
     "directory": "packages/cli"
   },
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "bin": {
     "releaselens": "./dist/index.js"
   },
   "main": "./dist/index.js",
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist .turbo"
+    "clean": "rm -rf dist .turbo",
+    "prepublishOnly": "tsup"
   },
   "dependencies": {
     "@releaselens/core": "workspace:*",

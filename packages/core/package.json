@@ -21,6 +21,10 @@
     "access": "public"
   },
   "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=24"
+  },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -32,14 +36,16 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist .turbo"
+    "clean": "rm -rf dist .turbo",
+    "prepublishOnly": "tsup"
   },
   "dependencies": {
     "jiti": "2.7.0",

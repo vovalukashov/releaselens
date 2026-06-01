@@ -15,7 +15,8 @@
     "test": "turbo run test",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "clean": "turbo run clean && rm -rf node_modules"
+    "clean": "turbo run clean && rm -rf node_modules",
+    "release": "pnpm -w build && pnpm -w test && pnpm -w typecheck && pnpm -r publish --no-git-checks"
   },
   "devDependencies": {
     "@types/node": "24.12.4",
