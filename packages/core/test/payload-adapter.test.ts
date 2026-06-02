@@ -129,6 +129,72 @@ describe('loadPayloadModel', () => {
     expect(model.localization?.locales).toEqual(['en']);
   });
 
+  it('extracts blocks registered via lexical BlocksFeature on a richText field', async () => {
+    const { dir } = writeConfig(`
+      import { lexicalEditor, BlocksFeature } from '@payloadcms/richtext-lexical'
+      const Hero = { slug: 'hero', fields: [{ name: 'h', type: 'text' }] }
+      const CTA = { slug: 'cta', fields: [{ name: 'label', type: 'text' }] }
+      export default {
+        collections: [
+          {
+            slug: 'pages',
+            fields: [
+              {
+                name: 'content',
+                type: 'richText',
+                editor: lexicalEditor({ features: [BlocksFeature({ blocks: [Hero, CTA] })] }),
+              },
+            ],
+          },
+        ],
+      }
+    `);
+    const model = await loadPayloadModel('./payload.config.ts', dir);
+    expect(model.blocks.map((b) => b.slug).sort()).toEqual(['cta', 'hero']);
+    expect(model.blocks.every((b) => b.ownerCollection === 'pages')).toBe(true);
+  });
+
+  it('extracts lexical blocks when `features` is a function', async () => {
+    const { dir } = writeConfig(`
+      import { lexicalEditor, BlocksFeature } from '@payloadcms/richtext-lexical'
+      const Quote = { slug: 'quote', fields: [{ name: 'text', type: 'text' }] }
+      export default {
+        collections: [
+          {
+            slug: 'pages',
+            fields: [
+              {
+                name: 'content',
+                type: 'richText',
+                editor: lexicalEditor({
+                  features: ({ defaultFeatures }) => [...defaultFeatures, BlocksFeature({ blocks: [Quote] })],
+                }),
+              },
+            ],
+          },
+        ],
+      }
+    `);
+    const model = await loadPayloadModel('./payload.config.ts', dir);
+    expect(model.blocks.map((b) => b.slug)).toEqual(['quote']);
+  });
+
+  it('dedupes a block reused across multiple richText fields', async () => {
+    const { dir } = writeConfig(`
+      import { lexicalEditor, BlocksFeature } from '@payloadcms/richtext-lexical'
+      const Shared = { slug: 'shared', fields: [{ name: 'x', type: 'text' }] }
+      const editor = lexicalEditor({ features: [BlocksFeature({ blocks: [Shared] })] })
+      export default {
+        collections: [
+          { slug: 'pages', fields: [{ name: 'a', type: 'richText', editor }] },
+          { slug: 'posts', fields: [{ name: 'b', type: 'richText', editor }] },
+        ],
+      }
+    `);
+    const model = await loadPayloadModel('./payload.config.ts', dir);
+    expect(model.blocks.filter((b) => b.slug === 'shared')).toHaveLength(1);
+  });
+
   it('bounded-retry stubs an unknown third-party plugin not in STUB_MODULES', async () => {
     const { dir } = writeConfig(`
       import { buildConfig } from 'payload'

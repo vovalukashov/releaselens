@@ -106,6 +106,10 @@ export default defineReleaseLens({
 });
 ```
 
+## Payload CMS
+
+When `adapters.payload` points at your `payload.config.ts`, releaselens loads it (heavy editor/db/storage imports are stubbed, so no database or build is needed) and extracts a normalized content model: collections, globals, localization, and **blocks**. Blocks are discovered both from `type: 'blocks'` fields and from the lexical rich-text editor — `lexicalEditor({ features: [BlocksFeature({ blocks: [...] })] })`, including blocks nested inside other blocks. The `payload-block-renderer` check then verifies every block slug has a matching frontend component, catching CMS-model/renderer drift (a renamed or new block whose renderer was never built).
+
 ## GitHub Action
 
 ```yaml

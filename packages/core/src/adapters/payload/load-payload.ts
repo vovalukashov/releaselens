@@ -58,6 +58,55 @@ target.default = identity;
 module.exports = makeProxy(target);
 `;
 
+// Specialized stub for the lexical rich-text editor. The generic stub discards
+// call arguments, which loses the blocks registered via
+// `lexicalEditor({ features: [BlocksFeature({ blocks: [...] })] })` — the
+// idiomatic way modern Payload sites attach blocks. This stub preserves just
+// enough structure (features → blocks) for the model walker to find them, while
+// every other lexical export stays a noop proxy.
+const LEXICAL_STUB = `
+"use strict";
+const makeProxy = (target) => new Proxy(target || function () {}, {
+  get(t, prop, receiver) {
+    if (prop === 'then') return undefined;
+    if (typeof prop === 'symbol') return Reflect.get(t, prop, receiver);
+    if (Object.prototype.hasOwnProperty.call(t, prop)) return Reflect.get(t, prop, receiver);
+    if (prop === '__esModule') return true;
+    return makeProxy();
+  },
+  has(t, prop) { return true; },
+  getOwnPropertyDescriptor(t, prop) {
+    const own = Object.getOwnPropertyDescriptor(t, prop);
+    if (own) return own;
+    return { configurable: true, enumerable: true, value: makeProxy(), writable: true };
+  },
+  apply() { return makeProxy(); },
+  construct() { return makeProxy(); },
+});
+function lexicalEditor(cfg) {
+  let features = (cfg && cfg.features) || [];
+  if (typeof features === 'function') {
+    try { features = features({ rootFeatures: [], defaultFeatures: [] }) || []; }
+    catch (e) { features = []; }
+  }
+  return { features: Array.isArray(features) ? features : [] };
+}
+function BlocksFeature(cfg) {
+  return {
+    blocks: (cfg && cfg.blocks) || [],
+    inlineBlocks: (cfg && cfg.inlineBlocks) || [],
+  };
+}
+const base = function () {};
+base.__esModule = true;
+base.lexicalEditor = lexicalEditor;
+base.BlocksFeature = BlocksFeature;
+base.default = lexicalEditor;
+module.exports = makeProxy(base);
+`;
+
+const LEXICAL_MODULE = '@payloadcms/richtext-lexical';
+
 const STUB_MODULES = [
   'sharp',
   'payload',
@@ -110,6 +159,8 @@ export async function loadPayloadModel(
   mkdirSync(stubDir, { recursive: true });
   const stubFile = join(stubDir, 'payload-stub.cjs');
   writeFileSync(stubFile, PAYLOAD_STUB, 'utf8');
+  const lexicalStubFile = join(stubDir, 'lexical-stub.cjs');
+  writeFileSync(lexicalStubFile, LEXICAL_STUB, 'utf8');
 
   const alias: Record<string, string> = {};
   for (const name of STUB_MODULES) alias[name] = stubFile;
@@ -119,6 +170,9 @@ export async function loadPayloadModel(
   for (const spec of collectExternalSpecifiers(absPath)) {
     alias[spec] = stubFile;
   }
+  // The lexical editor needs the structure-preserving stub so block
+  // registrations survive — override any generic alias set above.
+  alias[LEXICAL_MODULE] = lexicalStubFile;
 
   try {
     // Bounded retry: each iteration tries to load the config; if the failure
@@ -237,14 +291,14 @@ function normalizePayloadConfig(raw: RawPayloadConfig): ContentModel {
 
   const topLevelBlocks: BlockModel[] = [];
   for (const item of raw.blocks ?? []) {
-    const block = normalizeBlock(item, 'top-level');
-    if (block) topLevelBlocks.push(block);
+    const norm = normalizeBlock(item, 'top-level');
+    if (norm) topLevelBlocks.push(norm.block, ...norm.nested);
   }
 
   const result: ContentModel = {
     collections,
     globals,
-    blocks: [...topLevelBlocks, ...inlineBlocks],
+    blocks: dedupeBlocks([...topLevelBlocks, ...inlineBlocks]),
   };
 
   const localization = normalizeLocalization(raw.localization);
@@ -253,6 +307,17 @@ function normalizePayloadConfig(raw: RawPayloadConfig): ContentModel {
   }
 
   return result;
+}
+
+function dedupeBlocks(blocks: BlockModel[]): BlockModel[] {
+  const seen = new Set<string>();
+  const out: BlockModel[] = [];
+  for (const block of blocks) {
+    if (seen.has(block.slug)) continue;
+    seen.add(block.slug);
+    out.push(block);
+  }
+  return out;
 }
 
 function normalizeCollection(
@@ -289,15 +354,27 @@ function normalizeBlock(
   raw: unknown,
   source: 'top-level' | 'inline',
   owner?: string,
-): BlockModel | undefined {
+): { block: BlockModel; nested: BlockModel[] } | undefined {
   if (!isObject(raw)) return undefined;
   const slug = readString(raw, 'slug');
   if (!slug) return undefined;
   const fieldsRaw = Array.isArray(raw.fields) ? raw.fields : [];
-  const { fields } = walkFields(fieldsRaw, slug);
+  const { fields, blocks: nested } = walkFields(fieldsRaw, slug);
   const block: BlockModel = { slug, fields, source };
   if (owner) block.ownerCollection = owner;
-  return block;
+  return { block, nested };
+}
+
+/** Blocks registered on a rich-text field via `lexicalEditor({ features: [BlocksFeature({ blocks })] })`. */
+function lexicalBlocks(editor: Record<string, unknown>): unknown[] {
+  const features = Array.isArray(editor.features) ? editor.features : [];
+  const out: unknown[] = [];
+  for (const feature of features) {
+    if (!isObject(feature)) continue;
+    if (Array.isArray(feature.blocks)) out.push(...feature.blocks);
+    if (Array.isArray(feature.inlineBlocks)) out.push(...feature.inlineBlocks);
+  }
+  return out;
 }
 
 function walkFields(
@@ -321,8 +398,14 @@ function walkFields(
     }
     if (type === 'blocks' && Array.isArray(raw.blocks)) {
       for (const b of raw.blocks) {
-        const block = normalizeBlock(b, 'inline', ownerSlug);
-        if (block) blocks.push(block);
+        const norm = normalizeBlock(b, 'inline', ownerSlug);
+        if (norm) blocks.push(norm.block, ...norm.nested);
+      }
+    }
+    if (type === 'richText' && isObject(raw.editor)) {
+      for (const b of lexicalBlocks(raw.editor)) {
+        const norm = normalizeBlock(b, 'inline', ownerSlug);
+        if (norm) blocks.push(norm.block, ...norm.nested);
       }
     }
     if (type === 'group' && Array.isArray(raw.fields)) {
