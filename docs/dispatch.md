@@ -69,7 +69,3 @@ claude setup-token
 ```
 
 It prints a token starting with `sk-ant-oat...`. Paste into routine environment vars (NEVER commit).
-
-## 5. Linear MCP
-
-`.mcp.json` at repo root declares the Linear MCP server at project scope — automatically available in routine sessions. Add more MCP servers (Vercel, Slack, etc.) by appending to the `mcpServers` field.
