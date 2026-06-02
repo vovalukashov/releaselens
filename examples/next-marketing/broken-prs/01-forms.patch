@@ -1,0 +1,13 @@
+diff --git a/app/pricing/pricing-form.tsx b/app/pricing/pricing-form.tsx
+index c4ba6d7..9ae53e4 100644
+--- a/app/pricing/pricing-form.tsx
++++ b/app/pricing/pricing-form.tsx
+@@ -5,7 +5,7 @@ import { track } from '../../lib/analytics';
+ export function PricingForm() {
+   return (
+     <form
+-      data-form="pricing-lead"
++      data-form="pricing-cta"
+       action="/api/lead"
+       method="post"
+       onSubmit={() => track('pricing_form_submit', { plan: 'pro' })}

@@ -1,0 +1,13 @@
+diff --git a/payload.config.ts b/payload.config.ts
+index 70bc3fe..13cd22e 100644
+--- a/payload.config.ts
++++ b/payload.config.ts
+@@ -11,7 +11,7 @@ const config = {
+           type: 'blocks',
+           blocks: [
+             {
+-              slug: 'PricingHero',
++              slug: 'PricingHeroV2',
+               fields: [
+                 {
+                   name: 'headline',

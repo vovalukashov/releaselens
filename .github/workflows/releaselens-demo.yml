@@ -62,5 +62,6 @@ jobs:
 
       - name: Report outcome (self-check is informational)
         run: |
-          echo "Demo expects 1 critical finding (missing canonical on /contact-sales)."
+          echo "Demo baseline passes clean (0 findings)."
+          echo "See examples/next-marketing/broken-prs/ for caught-regression examples."
           echo "Exit code from releaselens: ${{ steps.check.outputs.exit-code }}"

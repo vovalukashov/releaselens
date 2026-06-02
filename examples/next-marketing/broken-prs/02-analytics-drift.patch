@@ -1,0 +1,13 @@
+diff --git a/app/pricing/pricing-form.tsx b/app/pricing/pricing-form.tsx
+index c4ba6d7..0477308 100644
+--- a/app/pricing/pricing-form.tsx
++++ b/app/pricing/pricing-form.tsx
+@@ -8,7 +8,7 @@ export function PricingForm() {
+       data-form="pricing-lead"
+       action="/api/lead"
+       method="post"
+-      onSubmit={() => track('pricing_form_submit', { plan: 'pro' })}
++      onSubmit={() => track('pricing_submit', { plan: 'pro' })}
+     >
+       <input name="email" type="email" required />
+       <button type="submit">Get started</button>
