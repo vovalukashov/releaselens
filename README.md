@@ -177,7 +177,7 @@ Each finding carries `high | medium | low` confidence. Low-confidence criticals 
 
 ## Development
 
-Requires Node 24 LTS and pnpm.
+Developing this repo requires Node 24 LTS and pnpm. (The published `releaselens` and `@releaselens/core` packages only need Node 20+ — the 24 baseline is for building the monorepo.)
 
 ```bash
 pnpm install
