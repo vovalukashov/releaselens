@@ -8,7 +8,7 @@ Not an AI code review. Not synthetic monitoring. Not visual regression. Not a CM
 
 ## Status
 
-Pre-alpha. All 10 default checks are live (SEO, forms, analytics, locales, Payload CMS, plus 3 config-integrity checks). The GitHub Action, FP-budget model, AI explanations, and a hosted cloud scaffold are all shipped.
+Pre-alpha. All 10 default checks are live (SEO, forms, analytics, locales, Payload CMS, plus 3 config-integrity checks). The GitHub Action, FP-budget model, and AI explanations are all shipped.
 
 ## Quickstart
 
@@ -174,7 +174,6 @@ Each finding carries `high | medium | low` confidence. Low-confidence criticals 
 | --- | --- |
 | [`@releaselens/core`](./packages/core) | Config schema, types, check runner, FP-budget storage, 10 default checks, Payload adapter, AI explainer. |
 | [`releaselens`](./packages/cli) | CLI binary (`init`, `check`, `push`, `dismiss`, `unmute`). |
-| [`@releaselens/cloud`](./apps/cloud) | Hosted backend (Next.js + Drizzle + Neon + Stripe). Deployable on Vercel. |
 
 ## Development
 
