@@ -13,20 +13,31 @@ Pre-alpha. All 10 default checks are live (SEO, forms, analytics, locales, Paylo
 ## Quickstart
 
 ```bash
-pnpm add -D releaselens          # placeholder, not published yet
-npx releaselens init             # scaffold releaselens.config.ts
-npx releaselens check                            # run checks and print a report
-npx releaselens check --ci                       # exit non-zero on critical findings
-npx releaselens check --json                     # machine-readable output
-npx releaselens check --report                   # also write releaselens-report.md (for PR artifacts)
-npx releaselens check --update-baseline          # snapshot current findings to .releaselens/baseline.json
-npx releaselens dismiss <fp> --reason "..."      # silence a specific finding by fingerprint
-npx releaselens unmute <checkId> --surface <id>  # restore auto-muted check
-npx releaselens check --upload --pr 42           # upload report to hosted backend
-npx releaselens push --pr 42                     # alias: run + upload only
+pnpm add -D releaselens     # placeholder, not published yet
+npx releaselens init        # scaffold releaselens.config.ts
+npx releaselens check       # run checks and print a report
 ```
 
-A minimal config:
+That's the whole first run. `init` writes a starter config; `check` tells you what this working tree would break.
+
+**SEO and localization checks work with zero config.** releaselens reads your `app/` tree and `generateMetadata` directly, so missing title / description / canonical / hreflang and broken `[locale]` routes are caught out of the box — you don't list your pages anywhere. You only add config to check **forms** and **analytics events**, because the tool can't guess your success states or event names (see [Configuration](#configuration)).
+
+Then wire it into CI with the [GitHub Action](#github-action) to get a findings comment on every pull request.
+
+More commands, when you need them:
+
+```bash
+npx releaselens check --ci               # exit non-zero on critical findings (use this in CI)
+npx releaselens check --json             # machine-readable output
+npx releaselens check --report           # also write releaselens-report.md (PR artifact)
+npx releaselens check --update-baseline  # snapshot findings so only NEW issues surface (see FP-budget)
+npx releaselens dismiss <fp> --reason "" # silence one finding by fingerprint
+npx releaselens push --pr 42             # run + upload report to the hosted backend
+```
+
+## Configuration
+
+`releaselens init` scaffolds `releaselens.config.ts`. SEO and locale checks need nothing in it. Add `routes`, `forms`, and `events` only for the surfaces you want verified:
 
 ```ts
 // releaselens.config.ts
@@ -38,47 +49,51 @@ export default defineReleaseLens({
   locales: ['en', 'es'],
   defaultLocale: 'en',
   routes: [
-    {
-      id: 'pricing',
-      path: '/pricing',
-      businessImpact: 'high',
-      locales: ['en', 'es'],
-    },
+    { id: 'pricing', path: '/pricing', businessImpact: 'high', locales: ['en', 'es'] },
   ],
   forms: [
-    // Match by any string attribute — data-form, name, id, aria-label,
-    // data-testid, role, etc. Multiple clauses are ANDed.
-    { id: 'pricing-lead', onRoute: 'pricing', selector: '[data-form=pricing-lead]',  successState: { type: 'route', value: '/thank-you' } },
-    { id: 'subscribe',    onRoute: 'home',    selector: '[name=email-subscribe]',    successState: { type: 'route', value: '/thanks' } },
-    { id: 'book-demo',    onRoute: 'pricing', selector: '[id=demo][aria-label="Book a demo"]', successState: { type: 'route', value: '/demo-thanks' } },
-    // Or by file path suffix — useful for react-hook-form patterns that have
-    // no identifying attribute on the <form> tag.
-    { id: 'lead',         onRoute: 'pricing', selector: 'file:book-a-demo-call/client.tsx',    successState: { type: 'route', value: '/ok' } },
-    // Native `<form>`, the next/form `<Form action="/search">` primitive, and
-    // Server Action forms (`<form action={fn}>`) are all recognised; the
-    // `action` prop counts as a submit mechanism (so does onSubmit / a submit button).
+    { id: 'pricing-lead', onRoute: 'pricing', selector: '[data-form=pricing-lead]', successState: { type: 'route', value: '/thank-you' } },
   ],
   events: [
-    {
-      name: 'pricing_form_submit',
-      onForm: 'pricing-lead',
-      consent: 'analytics',
-    },
+    { name: 'pricing_form_submit', onForm: 'pricing-lead', consent: 'analytics' },
   ],
-  // analytics-static recognises `track`, `posthog.capture`, `analytics.track`,
-  // and `gtag('event', …)` out of the box. Custom wrappers are declared here.
-  analytics: {
-    trackers: [
-      'sendEvent',            // identifier call: sendEvent(name, …)
-      'mixpanel.track',       // member access: mixpanel.track(name, …)
-      '_sendEvent@1',         // name at arg 1: _sendEvent(host, name, …)
-      'gtag:event',           // first arg must equal 'event'; built-in
-      'track#event',          // object arg: track({ event: name, … })
-      'logEvent@1#name',      // object at arg 1: logEvent(ctx, { name, … })
-    ],
-  },
 });
 ```
+
+### Forms
+
+Match a form by any string attribute — `data-form`, `name`, `id`, `aria-label`, `data-testid`, `role`. Multiple clauses are ANDed:
+
+```ts
+forms: [
+  { id: 'pricing-lead', onRoute: 'pricing', selector: '[data-form=pricing-lead]', successState: { type: 'route', value: '/thank-you' } },
+  { id: 'subscribe',    onRoute: 'home',    selector: '[name=email-subscribe]',   successState: { type: 'route', value: '/thanks' } },
+  { id: 'book-demo',    onRoute: 'pricing', selector: '[id=demo][aria-label="Book a demo"]', successState: { type: 'route', value: '/demo-thanks' } },
+  // Or match by file path suffix — for react-hook-form patterns with no identifying attribute on the <form> tag:
+  { id: 'lead',         onRoute: 'pricing', selector: 'file:book-a-demo-call/client.tsx', successState: { type: 'route', value: '/ok' } },
+],
+```
+
+Native `<form>`, the next/form `<Form action="/search">` primitive, and Server Action forms (`<form action={fn}>`) all count as real forms — the `action` prop is a valid submit mechanism, and so is an `onSubmit` handler or a submit button.
+
+### Analytics events
+
+`analytics-static` recognises `track`, `posthog.capture`, `analytics.track`, and `gtag('event', …)` out of the box. Declare custom wrappers under `analytics.trackers`:
+
+```ts
+analytics: {
+  trackers: [
+    'sendEvent',        // sendEvent(name, …)        — plain call, event name is arg 0
+    'mixpanel.track',   // mixpanel.track(name, …)   — method call, event name is arg 0
+    '_sendEvent@1',     // _sendEvent(host, name, …) — event name is arg 1
+    'gtag:event',       // gtag('event', name)       — arg 0 must equal 'event' (built-in)
+    'track#event',      // track({ event: name, … }) — event name is the `event` property
+    'logEvent@1#name',  // logEvent(ctx, { name, … })— object at arg 1, name is its `name` property
+  ],
+},
+```
+
+The grammar reads left to right: `callee` (a plain name or `obj.method`), optional `@N` for the argument index (default 0), optional `#prop` when the event name lives in a property of an object argument instead of being a bare string.
 
 ## SEO metadata resolution
 
