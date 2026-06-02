@@ -20,3 +20,7 @@ releaselens-report.md
 
 # Personal Claude Code automation sandbox
 .devcontainer/
+
+# Local-only AI guidance (internal coordination, not for the public repo)
+CLAUDE.local.md
+.claude/settings.local.json

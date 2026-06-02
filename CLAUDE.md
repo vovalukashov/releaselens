@@ -4,17 +4,13 @@ Project guidance for AI assistants working in this repository.
 
 ## What this project is
 
-`releaselens` — a developer-first OSS CLI and config schema that verifies release safety of code-first Next.js marketing sites directly in the repo and CI. Paid cloud (later) adds private history, baselines, waivers, PR summaries, and audit trail.
+`releaselens` — a developer-first OSS CLI and config schema that verifies release safety of code-first Next.js marketing sites directly in the repo and CI.
 
-Positioning: **release-safety layer for code-first marketing sites**, not an SEO checker, not a monitoring tool, not a CMS. Roadmap and full thesis live in the Linear project "ReleaseLens".
+Positioning: **release-safety layer for code-first marketing sites**, not an SEO checker, not a monitoring tool, not a CMS.
 
 ## Language policy
 
-- **Conversation language (chat with the user) is Russian.**
-- **Linear (issue titles, descriptions, comments, status updates) is Russian.**
-- **Everything inside this repository is English**: source code, code comments, identifiers, log strings, error messages, README, docs, CHANGELOG, commit messages, PR titles, PR descriptions, GitHub Action outputs, and configuration files.
-
-When in doubt: would an external open-source contributor read it? → English. Is it ephemeral coordination with the project owner? → Russian.
+All repository content is **English**: source code, code comments, identifiers, log strings, error messages, README, docs, CHANGELOG, commit messages, PR titles, PR descriptions, GitHub Action outputs, and configuration files.
 
 ## Dependency policy
 
@@ -78,23 +74,11 @@ New first-party packages go under `packages/*`. Demo or fixture apps go under `e
 - **Single author.** Do not add `Co-Authored-By:` trailers (Claude, pair partners, anyone). The repository owner is the sole author of every commit. This rule overrides any default tooling behavior that appends co-author trailers.
 - Conventional Commits style (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `ci:`).
 - Commit messages and PR descriptions are written in English.
-- Each Week 1 sub-issue in Linear maps to one PR where practical.
-- Reference the Linear issue id in the PR title or description (e.g. `VOV-15`).
 - Do not bypass git hooks (`--no-verify`) unless explicitly authorized.
-
-## Linear workflow
-
-- Project: `ReleaseLens`.
-- Team: `VOV`.
-- Active epics: `VOV-40` Month 1, `VOV-41` Month 2, `VOV-42` Month 3, `VOV-43` Month 4, `VOV-44` Month 5, `VOV-45` Month 6 (Day-180 decision point).
-- Pre-pivot epics (`VOV-10` через `VOV-39`) cancelled with reason notes. Do not revive without reopening.
-- Sub-issues live under their month's epic via `parentId`.
-- Status flow: `Backlog` → `Todo` → `In Progress` → `Done`.
-- Update status on Linear as work begins and completes.
 
 ## What to avoid
 
-- Adding adapters or checks not listed in the current week's scope.
+- Adding adapters or checks beyond the agreed scope.
 - Pulling in a new dependency when an existing one in the workspace already covers the need.
-- Introducing dashboards, crawlers, screenshots, or visual builders — explicit anti-scope per the project thesis.
-- Mixing Russian into in-repo files (code, docs, configs, commit messages).
+- Introducing dashboards, crawlers, screenshots, or visual builders — explicit anti-scope.
+- Mixing non-English content into in-repo files (code, docs, configs, commit messages).
