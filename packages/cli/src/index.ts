@@ -1,9 +1,14 @@
+import { readFileSync } from 'node:fs';
 import { Command } from 'commander';
 import { checkCommand } from './commands/check.js';
 import { dismissCommand } from './commands/dismiss.js';
 import { initCommand } from './commands/init.js';
 import { pushCommand } from './commands/push.js';
 import { unmuteCommand } from './commands/unmute.js';
+
+const { version } = JSON.parse(
+  readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+) as { version: string };
 
 const program = new Command();
 
@@ -12,7 +17,7 @@ program
   .description(
     'Pre-merge regression detector for Next.js revenue pages: SEO, forms, analytics, localization, CMS.',
   )
-  .version('0.0.0');
+  .version(version);
 
 program
   .command('init')
