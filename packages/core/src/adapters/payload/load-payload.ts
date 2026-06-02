@@ -15,7 +15,7 @@ import type {
 // Proxy: any property access (including unknown named imports like custom
 // plugin functions) returns another callable proxy. This way the stub covers
 // `import sharp from 'sharp'`, `import { buildConfig } from 'payload'`,
-// `import { access } from '@web-experience/payload'`, and any project-specific
+// `import { access } from '@acme/payload'`, and any project-specific
 // plugin name we cannot predict, all from a single file.
 //
 // The stub is CJS so the transpiled `require('…').X` destructuring hits the
