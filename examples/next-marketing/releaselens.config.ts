@@ -5,7 +5,7 @@ export default defineReleaseLens({
   appDir: './app',
   frontendDirs: ['./app', './components'],
   previewUrl: { source: 'vercel' },
-  locales: ['en', 'es'],
+  locales: ['en'],
   defaultLocale: 'en',
   routes: [
     {
@@ -17,7 +17,6 @@ export default defineReleaseLens({
       id: 'pricing',
       path: '/pricing',
       businessImpact: 'high',
-      locales: ['en', 'es'],
       cms: { collection: 'pages', slug: 'pricing' },
     },
     {
@@ -47,11 +46,6 @@ export default defineReleaseLens({
       onForm: 'pricing-lead',
       consent: 'analytics',
       requiredPayload: ['plan'],
-    },
-    {
-      name: 'contact_form_submit',
-      onForm: 'contact-sales',
-      consent: 'analytics',
     },
   ],
   adapters: {

@@ -49,7 +49,7 @@ const config = {
     },
   ],
   localization: {
-    locales: ['en', 'es'],
+    locales: ['en'],
     defaultLocale: 'en',
   },
 };

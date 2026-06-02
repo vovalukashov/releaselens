@@ -3,6 +3,9 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Contact Sales — Acme',
   description: 'Talk to our team about your needs.',
+  alternates: {
+    canonical: 'https://acme.example.com/contact-sales',
+  },
 };
 
 export default function ContactSalesPage() {

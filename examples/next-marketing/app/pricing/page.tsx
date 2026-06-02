@@ -6,10 +6,6 @@ export const metadata: Metadata = {
   description: 'Transparent pricing for teams of any size.',
   alternates: {
     canonical: 'https://acme.example.com/pricing',
-    languages: {
-      en: 'https://acme.example.com/pricing',
-      es: 'https://acme.example.com/es/pricing',
-    },
   },
   robots: { index: true, follow: true },
 };
