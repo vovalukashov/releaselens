@@ -13,14 +13,14 @@ Pre-alpha. All 10 default checks are live (SEO, forms, analytics, locales, Paylo
 ## Quickstart
 
 ```bash
-pnpm add -D releaselens     # placeholder, not published yet
-npx releaselens init        # scaffold releaselens.config.ts
+pnpm add -D releaselens     # the CLI
+npx releaselens init        # scaffold releaselens.config.ts (with a sample route, form, event)
 npx releaselens check       # run checks and print a report
 ```
 
-That's the whole first run. `init` writes a starter config; `check` tells you what this working tree would break.
+`init` writes a starter config you edit to match your revenue surfaces; `check` tells you what this working tree would break.
 
-**SEO and localization checks work with zero config.** releaselens reads your `app/` tree and `generateMetadata` directly, so missing title / description / canonical / hreflang and broken `[locale]` routes are caught out of the box — you don't list your pages anywhere. You only add config to check **forms** and **analytics events**, because the tool can't guess your success states or event names (see [Configuration](#configuration)).
+releaselens is deliberately **not** a whole-site crawler. You list the handful of routes that move money — pricing, signup, checkout — under `routes`, and for each one it reads the page, its layouts, and `generateMetadata` from your `app/` tree to check title / description / canonical / hreflang / noindex. So you point at a route once instead of restating its metadata in config, but the checks only cover routes you declare. Forms and analytics events are declared the same way (see [Configuration](#configuration)).
 
 Then wire it into CI with the [GitHub Action](#github-action) to get a findings comment on every pull request.
 
@@ -37,7 +37,7 @@ npx releaselens push --pr 42             # run + upload report to the hosted bac
 
 ## Configuration
 
-`releaselens init` scaffolds `releaselens.config.ts`. SEO and locale checks need nothing in it. Add `routes`, `forms`, and `events` only for the surfaces you want verified:
+`releaselens init` scaffolds `releaselens.config.ts`. List each revenue route under `routes` — that's what the SEO and locale checks run against. Add `forms` and `events` for the surfaces you want those checks to cover:
 
 ```ts
 // releaselens.config.ts
