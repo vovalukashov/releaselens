@@ -342,6 +342,30 @@ describe('parseSeoMetadata — default export + re-export', () => {
     expect(meta.hasMetadataSpread).toBe(true);
     expect(meta.metadataRefs).toEqual([{ from: './base', exportName: 'base' }]);
   });
+
+  it('does not mark a resolvable imported-base spread as dynamic', () => {
+    const meta = parseSeoMetadata(
+      `import { base } from './base';\nexport const metadata = { ...base, title: 'X' };`,
+    );
+    expect(meta.hasMetadataSpread).toBe(true);
+    expect(meta.hasDynamicSpread).toBe(false);
+  });
+
+  it('marks a call-expression spread as dynamic', () => {
+    const meta = parseSeoMetadata(
+      `export const metadata = { title: 'T', ...getMeta(locale) };`,
+    );
+    expect(meta.hasMetadataSpread).toBe(true);
+    expect(meta.hasDynamicSpread).toBe(true);
+  });
+
+  it('marks a non-import identifier spread as dynamic', () => {
+    const meta = parseSeoMetadata(
+      `const local = { title: 'T' };\nexport const metadata = { ...local };`,
+    );
+    expect(meta.hasMetadataSpread).toBe(true);
+    expect(meta.hasDynamicSpread).toBe(true);
+  });
 });
 
 describe('seoStaticCheck — metadata re-export resolution', () => {
@@ -445,6 +469,46 @@ describe('seoStaticCheck — metadata re-export resolution', () => {
     });
     const out = await seoStaticCheck.run({ config: cfg, cwd: dir });
     expect(out.find((r) => r.issueKey === 'missing-title')).toBeDefined();
+  });
+
+  it('keeps high confidence on a resolved base+override so a real missing canonical still blocks', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rl-spread-'));
+    mkdirSync(join(dir, 'app'), { recursive: true });
+    mkdirSync(join(dir, 'contents'), { recursive: true });
+    writeFileSync(
+      join(dir, 'contents/base.ts'),
+      `export const base = { title: 'OS', description: 'D' };`,
+    );
+    writeFileSync(
+      join(dir, 'app/page.tsx'),
+      `import { base } from '../contents/base';\nexport const metadata = { ...base };\nexport default function P() { return null; }`,
+    );
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      routes: [{ id: 'home', path: '/', businessImpact: 'high' }],
+    });
+    const out = await seoStaticCheck.run({ config: cfg, cwd: dir });
+    const canonical = out.find((r) => r.issueKey === 'missing-canonical');
+    expect(canonical).toBeDefined();
+    expect(canonical?.confidence).toBe('high');
+    expect(out.find((r) => r.issueKey === 'missing-title')).toBeUndefined();
+  });
+
+  it('downgrades to low confidence when a base spread cannot be resolved', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rl-spread-'));
+    mkdirSync(join(dir, 'app'), { recursive: true });
+    writeFileSync(
+      join(dir, 'app/page.tsx'),
+      `import { base } from './nonexistent';\nexport const metadata = { ...base };\nexport default function P() { return null; }`,
+    );
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      routes: [{ id: 'home', path: '/', businessImpact: 'high' }],
+    });
+    const out = await seoStaticCheck.run({ config: cfg, cwd: dir });
+    const canonical = out.find((r) => r.issueKey === 'missing-canonical');
+    expect(canonical).toBeDefined();
+    expect(canonical?.confidence).toBe('low');
   });
 });
 

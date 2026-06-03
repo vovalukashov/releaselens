@@ -15,8 +15,16 @@ export interface SeoMetadata {
   hasDescription: boolean;
   hasCanonical: boolean;
   hasHreflang: boolean;
-  /** A spread (e.g. `...getLocaleMetadata(...)`) appeared in the metadata object — fields may be set dynamically. Used to downgrade confidence on missing-field findings. */
+  /** A spread (e.g. `...getLocaleMetadata(...)` or `...base`) literally appeared in the metadata object. Informational; resolvable bases still set this. */
   hasMetadataSpread: boolean;
+  /**
+   * A spread appeared that cannot be resolved statically — a call result
+   * (`...getMeta(locale)`) or an identifier that is not an import. An
+   * imported-object base (`...base`) is recorded as a ref and merged by the
+   * caller, so it does NOT set this. Drives the low-confidence downgrade, so a
+   * resolved base+override stays high confidence and still catches real gaps.
+   */
+  hasDynamicSpread: boolean;
   /** Metadata came from a helper-call (e.g. `setMetadata({ canonical })`) — the wrapper may fill defaults the parser cannot see. Used to downgrade confidence. */
   hasMetadataHelperWrap: boolean;
   /**
@@ -55,6 +63,7 @@ export function parseSeoMetadata(
     hasCanonical: false,
     hasHreflang: false,
     hasMetadataSpread: false,
+    hasDynamicSpread: false,
     hasMetadataHelperWrap: false,
   };
 
@@ -227,6 +236,7 @@ export function mergeSeoMetadata(layers: SeoMetadata[]): SeoMetadata {
     hasCanonical: false,
     hasHreflang: false,
     hasMetadataSpread: false,
+    hasDynamicSpread: false,
     hasMetadataHelperWrap: false,
   };
   for (const layer of layers) {
@@ -237,6 +247,7 @@ export function mergeSeoMetadata(layers: SeoMetadata[]): SeoMetadata {
     if (layer.hasCanonical) merged.hasCanonical = true;
     if (layer.hasHreflang) merged.hasHreflang = true;
     if (layer.hasMetadataSpread) merged.hasMetadataSpread = true;
+    if (layer.hasDynamicSpread) merged.hasDynamicSpread = true;
     if (layer.hasMetadataHelperWrap) merged.hasMetadataHelperWrap = true;
     if (layer.title !== undefined) merged.title = layer.title;
     if (layer.description !== undefined) merged.description = layer.description;
@@ -265,6 +276,9 @@ function extractMetadataFields(
       if (ts.isIdentifier(prop.expression)) {
         const imported = imports.get(prop.expression.text);
         if (imported) pushRef(result, imported.from, imported.orig);
+        else result.hasDynamicSpread = true;
+      } else {
+        result.hasDynamicSpread = true;
       }
       continue;
     }

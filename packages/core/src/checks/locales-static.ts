@@ -153,7 +153,7 @@ function checkDynamicSegmentRoute(
   const meta = parseSeoMetadata(readFileSync(page, 'utf8'), page);
 
   if (meta.hasMetadata && !meta.hasGenerateMetadata) {
-    const dynamicish = meta.hasMetadataSpread || meta.hasMetadataHelperWrap;
+    const dynamicish = meta.hasDynamicSpread || meta.hasMetadataHelperWrap;
     results.push({
       checkId: CHECK_ID,
       issueKey: 'static-metadata-on-localized-route',

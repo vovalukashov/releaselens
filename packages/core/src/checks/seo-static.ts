@@ -78,13 +78,13 @@ export const seoStaticCheck: Check = {
       }
 
       const presenceConfidence =
-        meta.hasMetadataSpread ||
+        meta.hasDynamicSpread ||
         meta.hasMetadataHelperWrap ||
         meta.hasGenerateMetadata
           ? 'low'
           : 'high';
-      const spreadNote = meta.hasMetadataSpread
-        ? ' (a spread is present, may be set dynamically)'
+      const spreadNote = meta.hasDynamicSpread
+        ? ' (a dynamic spread is present, may be set at runtime)'
         : meta.hasMetadataHelperWrap
           ? ' (wrapped via a helper call — defaults may be applied outside the analysed file)'
           : meta.hasGenerateMetadata
@@ -166,15 +166,20 @@ function parseFileMetadata(
   if (!meta.metadataRefs?.length) return meta;
 
   const layers: SeoMetadata[] = [];
+  let unresolved = false;
   for (const ref of meta.metadataRefs) {
     const key = `${file}::${ref.from}::${ref.exportName}`;
     if (seen.has(key)) continue;
     seen.add(key);
     const target = resolveModuleFile(file, ref.from);
     if (target) layers.push(parseFileMetadata(target, ref.exportName, seen));
+    else unresolved = true;
   }
-  if (layers.length === 0) return meta;
-  return mergeSeoMetadata([...layers, meta]);
+  const result = layers.length === 0 ? meta : mergeSeoMetadata([...layers, meta]);
+  // A base/re-export we could not follow means the real fields are unknown —
+  // treat it as a dynamic spread so missing-field findings stay low confidence.
+  if (unresolved) result.hasDynamicSpread = true;
+  return result;
 }
 
 const MODULE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
