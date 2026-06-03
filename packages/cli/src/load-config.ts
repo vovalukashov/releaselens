@@ -1,5 +1,6 @@
 import { existsSync, statSync } from 'node:fs';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createJiti } from 'jiti';
 import {
   ReleaseLensConfigSchema,
@@ -43,10 +44,29 @@ export async function loadConfig(
     throw new ConfigNotFoundError(cwd);
   }
 
-  const jiti = createJiti(filePath, { interopDefault: true });
+  const jiti = createJiti(filePath, {
+    interopDefault: true,
+    alias: buildConfigAlias(),
+  });
   const raw = await jiti.import(filePath, { default: true });
   const config = ReleaseLensConfigSchema.parse(raw);
   return { config, path: filePath };
+}
+
+// The scaffolded config imports `@releaselens/core`, but it is only a
+// dependency of this CLI — under pnpm's strict node_modules or `npx`, it is not
+// resolvable from the user's project. Alias it to the copy shipped with the CLI
+// so the config loads without requiring the user to install core directly.
+function buildConfigAlias(): Record<string, string> {
+  try {
+    return {
+      '@releaselens/core': fileURLToPath(
+        import.meta.resolve('@releaselens/core'),
+      ),
+    };
+  } catch {
+    return {};
+  }
 }
 
 function resolveExplicit(path: string, cwd: string): string {

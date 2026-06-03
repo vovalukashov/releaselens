@@ -1,6 +1,6 @@
 {
   "name": "releaselens",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Release-safety checks for code-first Next.js marketing sites.",
   "license": "MIT",
   "keywords": [
