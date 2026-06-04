@@ -40,6 +40,11 @@ export default defineReleaseLens({
       successState: { type: 'route', value: '/thank-you' },
     },
   ],
+  analytics: {
+    // This demo's analytics surface is exactly its declared conversions, so we
+    // opt into the reverse check: a renamed event also surfaces as undeclared.
+    requireDeclared: true,
+  },
   events: [
     {
       name: 'pricing_form_submit',
