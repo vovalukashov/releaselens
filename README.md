@@ -25,17 +25,16 @@ cd examples/next-marketing
 
 ## Quickstart
 
+Try it with no install — `npx` fetches the CLI on the fly:
+
 ```bash
-pnpm add -D releaselens     # the CLI
-npx releaselens init        # scaffold releaselens.config.ts (with a sample route, form, event)
-npx releaselens check       # run checks and print a report
+npx releaselens init     # scaffold releaselens.config.ts (sample route, form, event)
+npx releaselens check    # run checks and print a report
 ```
 
 `init` writes a starter config you edit to match your revenue surfaces; `check` tells you what this working tree would break.
 
 releaselens is deliberately **not** a whole-site crawler. You list the handful of routes that move money — pricing, signup, checkout — under `routes`, and for each one it reads the page, its layouts, and `generateMetadata` from your `app/` tree to check title / description / canonical / hreflang / noindex. So you point at a route once instead of restating its metadata in config, but the checks only cover routes you declare. Forms and analytics events are declared the same way (see [Configuration](#configuration)).
-
-Then wire it into CI with the [GitHub Action](#github-action) to get a findings comment on every pull request.
 
 More commands, when you need them:
 
@@ -46,6 +45,27 @@ npx releaselens check --report           # also write releaselens-report.md (PR 
 npx releaselens check --update-baseline  # snapshot findings so only NEW issues surface (see FP-budget)
 npx releaselens dismiss <fp> --reason "" # silence one finding by fingerprint
 npx releaselens push --pr 42             # run + upload report to the hosted backend
+```
+
+### For regular use
+
+`npx` alone runs fine, but on an ongoing project add releaselens as a dev dependency — this types your config's `@releaselens/core` import in the editor and pins the version your CI runs against:
+
+```bash
+npm i -D releaselens     # or: pnpm add -D releaselens / yarn add -D releaselens
+```
+
+For CI, the simplest path is the [GitHub Action](#github-action) — it installs releaselens, runs `check --ci`, and comments the findings on each pull request:
+
+```yaml
+- uses: vovalukashov/releaselens/actions/releaselens-check@main
+```
+
+Or run it yourself in any CI step once dependencies are installed:
+
+```bash
+npm ci
+npx releaselens check --ci   # exit non-zero on blocking critical findings
 ```
 
 ## Configuration
