@@ -1,4 +1,8 @@
+import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { defineReleaseLens, analyticsStaticCheck } from '../src/index.js';
 import { parseTrackingCalls } from '../src/analytics/parse-tracking-calls.js';
 
 describe('parseTrackingCalls', () => {
@@ -138,5 +142,72 @@ describe('parseTrackingCalls', () => {
     const source = `logEvent({ 'name': 'purchase' });`;
     const calls = parseTrackingCalls(source, 'x.ts', ['logEvent#name']);
     expect(calls.map((c) => c.name)).toEqual(['purchase']);
+  });
+});
+
+describe('analyticsStaticCheck', () => {
+  function project(files: Record<string, string>): string {
+    const dir = mkdtempSync(join(tmpdir(), 'rl-analytics-'));
+    for (const [rel, content] of Object.entries(files)) {
+      const full = join(dir, rel);
+      mkdirSync(dirname(full), { recursive: true });
+      writeFileSync(full, content);
+    }
+    return dir;
+  }
+
+  it('passes when a declared event has a tracking call (forward check)', async () => {
+    const dir = project({
+      'app/page.tsx': `export default function P(){ track('pricing_view'); return null; }`,
+    });
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      routes: [{ id: 'pricing', path: '/pricing' }],
+      events: [{ name: 'pricing_view', onRoute: 'pricing' }],
+    });
+    const out = await analyticsStaticCheck.run({ config: cfg, cwd: dir });
+    expect(out).toHaveLength(0);
+  });
+
+  it('flags a declared event with no tracking call (event-not-tracked)', async () => {
+    const dir = project({
+      'app/page.tsx': `export default function P(){ track('pricing_view'); return null; }`,
+    });
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      routes: [{ id: 'pricing', path: '/pricing' }],
+      events: [{ name: 'checkout_complete', onRoute: 'pricing' }],
+    });
+    const out = await analyticsStaticCheck.run({ config: cfg, cwd: dir });
+    expect(out.find((r) => r.issueKey === 'event-not-tracked')).toBeDefined();
+  });
+
+  it('does not flag undeclared tracking calls by default (forward-only)', async () => {
+    const dir = project({
+      'app/page.tsx': `export default function P(){ track('pricing_view'); track('server_telemetry_ping'); return null; }`,
+    });
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      routes: [{ id: 'pricing', path: '/pricing' }],
+      events: [{ name: 'pricing_view', onRoute: 'pricing' }],
+    });
+    const out = await analyticsStaticCheck.run({ config: cfg, cwd: dir });
+    expect(out).toHaveLength(0);
+  });
+
+  it('flags undeclared tracking calls when requireDeclared is enabled', async () => {
+    const dir = project({
+      'app/page.tsx': `export default function P(){ track('pricing_view'); track('server_telemetry_ping'); return null; }`,
+    });
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      routes: [{ id: 'pricing', path: '/pricing' }],
+      events: [{ name: 'pricing_view', onRoute: 'pricing' }],
+      analytics: { requireDeclared: true },
+    });
+    const out = await analyticsStaticCheck.run({ config: cfg, cwd: dir });
+    const undeclared = out.find((r) => r.issueKey === 'event-undeclared');
+    expect(undeclared).toBeDefined();
+    expect(undeclared?.event).toBe('server_telemetry_ping');
   });
 });

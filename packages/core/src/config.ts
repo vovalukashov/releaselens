@@ -104,6 +104,15 @@ export const AnalyticsConfigSchema = z.object({
    *   `'gtag:event'`            — first arg must equal `'event'`, second is the name
    */
   trackers: z.array(z.string().min(1)).default([]),
+  /**
+   * When true, analytics-static also flags tracking calls whose event name is
+   * not declared in `events` (`event-undeclared`). Off by default: releaselens
+   * is a conversion-regression gate, not an analytics inventory — codebases
+   * with server telemetry or shared channels would otherwise be flooded with
+   * warnings for every undeclared name. Declared events are always verified to
+   * fire regardless of this flag (the `event-not-tracked` forward check).
+   */
+  requireDeclared: z.boolean().default(false),
 });
 export type AnalyticsConfig = z.infer<typeof AnalyticsConfigSchema>;
 

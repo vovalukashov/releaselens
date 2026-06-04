@@ -95,6 +95,14 @@ analytics: {
 
 The grammar reads left to right: `callee` (a plain name or `obj.method`), optional `@N` for the argument index (default 0), optional `#prop` when the event name lives in a property of an object argument instead of being a bare string.
 
+By default `analytics-static` is **forward-only**: it verifies that every event you declare in `events` actually has a tracking call (`event-not-tracked` — the regression that matters: a refactor silently dropped a conversion event). It does **not** flag tracking calls whose names you did not declare — a codebase with server telemetry, error tracking, or shared channels would otherwise be flooded with warnings for every internal event name. If your analytics surface is exactly your declared conversions and you want drift in the other direction caught too, opt in:
+
+```ts
+analytics: {
+  requireDeclared: true, // also flag tracking calls not present in `events` (off by default)
+},
+```
+
 ## SEO metadata resolution
 
 `seo-static` resolves a route's effective metadata the way Next.js does, then checks for missing title / description / canonical / hreflang / noindex. It understands:

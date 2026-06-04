@@ -53,17 +53,19 @@ export const analyticsStaticCheck: Check = {
       }
     }
 
-    const declaredNames = new Set(config.events.map((e) => e.name));
-    for (const name of trackedNames) {
-      if (!declaredNames.has(name)) {
-        results.push({
-          checkId: CHECK_ID,
-          issueKey: 'event-undeclared',
-          severity: 'warning',
-          confidence: 'medium',
-          message: `Tracking call \`${name}\` exists but is not declared in releaselens.config events.`,
-          event: name,
-        });
+    if (config.analytics.requireDeclared) {
+      const declaredNames = new Set(config.events.map((e) => e.name));
+      for (const name of trackedNames) {
+        if (!declaredNames.has(name)) {
+          results.push({
+            checkId: CHECK_ID,
+            issueKey: 'event-undeclared',
+            severity: 'warning',
+            confidence: 'medium',
+            message: `Tracking call \`${name}\` exists but is not declared in releaselens.config events.`,
+            event: name,
+          });
+        }
       }
     }
 
