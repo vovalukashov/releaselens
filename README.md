@@ -2,6 +2,10 @@
 
 > **Tell me what this PR breaks before it ships.**
 
+[![npm](https://img.shields.io/npm/v/releaselens)](https://www.npmjs.com/package/releaselens)
+[![CI](https://github.com/vovalukashov/releaselens/actions/workflows/ci.yml/badge.svg)](https://github.com/vovalukashov/releaselens/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/releaselens)](./LICENSE)
+
 `releaselens` is a self-serve, OSS pre-merge regression detector for Next.js revenue pages. On every pull request it tells you which routes, forms, analytics events, locales, or SEO tags this change can break — before the merge button.
 
 Not an AI code review. Not synthetic monitoring. Not visual regression. Not a CMS or observability backend. A thin orchestrator that runs targeted checks on revenue-critical web surfaces.
