@@ -10,6 +10,15 @@ Not an AI code review. Not synthetic monitoring. Not visual regression. Not a CM
 
 Pre-alpha. All 10 default checks are live (SEO, forms, analytics, locales, Payload CMS, plus 3 config-integrity checks). The GitHub Action, FP-budget model, and AI explanations are all shipped.
 
+## See it catch a regression
+
+[`examples/next-marketing/broken-prs`](./examples/next-marketing/broken-prs) is the killer demo: a clean Next.js marketing app plus three "harmless" pull requests — a renamed form attribute, a renamed analytics event, a renamed CMS block. Each one passes type-checking and code review and ships green; each one silently breaks a revenue surface. ReleaseLens turns red on exactly the regression — with the diff a reviewer would have rubber-stamped.
+
+```bash
+cd examples/next-marketing
+./broken-prs/demo.sh   # applies each PR, runs releaselens, reverts — tree unchanged
+```
+
 ## Quickstart
 
 ```bash

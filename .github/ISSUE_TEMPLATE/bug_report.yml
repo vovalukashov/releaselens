@@ -1,0 +1,37 @@
+name: Bug report
+description: Something releaselens does wrong — a false positive, a missed regression, or a crash.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. A minimal repro (the config plus the file it checks) helps most.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What did releaselens report (or fail to report), and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Repro
+      description: The relevant `releaselens.config.ts` and the file(s) it checks. Smaller is better.
+      render: ts
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `npx releaselens --version`.
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: Node version, package manager, and Next.js version.
+    validations:
+      required: false

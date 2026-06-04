@@ -1,0 +1,22 @@
+name: Feature request
+description: A new check, config option, or adapter.
+labels: ["feature"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What release-safety gap are you hitting? What ships broken today that releaselens should have caught?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Proposed behavior
+      description: What should releaselens check, expose, or report?
+    validations:
+      required: false
+  - type: markdown
+    attributes:
+      value: |
+        Scope note: releaselens is a pre-merge regression gate for revenue surfaces — not an SEO crawler, a monitoring tool, or a CMS. Requests that fit that frame are the most likely to land.
