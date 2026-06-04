@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 
 # Override with RELEASELENS_BIN if the CLI is not on PATH (e.g. a monorepo build:
 # RELEASELENS_BIN="node ../../packages/cli/dist/index.js" ./broken-prs/demo.sh)
-CLI="${RELEASELENS_BIN:-npx releaselens}"
+CLI="${RELEASELENS_BIN:-npx --yes releaselens}"
 
 for patch in broken-prs/*.patch; do
   echo "════════════════════════════════════════════════════════"
