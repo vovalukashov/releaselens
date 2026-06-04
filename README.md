@@ -58,7 +58,7 @@ npm i -D releaselens     # or: pnpm add -D releaselens / yarn add -D releaselens
 For CI, the simplest path is the [GitHub Action](#github-action) — it installs releaselens, runs `check --ci`, and comments the findings on each pull request:
 
 ```yaml
-- uses: vovalukashov/releaselens/actions/releaselens-check@main
+- uses: vovalukashov/releaselens/actions/releaselens-check@v0.1.3
 ```
 
 Or run it yourself in any CI step once dependencies are installed:
@@ -184,10 +184,12 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '20'
-      - uses: vovalukashov/releaselens/actions/releaselens-check@main
+      - uses: vovalukashov/releaselens/actions/releaselens-check@v0.1.3
 ```
 
 See [`actions/releaselens-check`](./actions/releaselens-check) for inputs and notes.
+
+The examples pin the action to a release tag (`@v0.1.3`). For a hardened supply chain, pin to a full commit SHA instead (`@<sha>`) and let Dependabot bump it — a SHA can't be moved, a tag can. Avoid `@main`: it runs whatever is on the default branch at the time.
 
 ## FP-budget (baseline + dismiss + auto-mute)
 

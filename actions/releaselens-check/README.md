@@ -23,7 +23,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '20'
-      - uses: vovalukashov/releaselens/actions/releaselens-check@main
+      - uses: vovalukashov/releaselens/actions/releaselens-check@v0.1.3
         with:
           working-directory: '.'
 ```
