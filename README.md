@@ -95,7 +95,7 @@ npx releaselens check --ci   # exit non-zero on blocking critical findings
 
 ## Configuration
 
-`releaselens init` scaffolds `releaselens.config.ts`. List each revenue route under `routes` — that's what the SEO and locale checks run against. Add `forms` and `events` for the surfaces you want those checks to cover:
+`releaselens init` scaffolds a minimal `releaselens.config.ts` — one route, experimental checks commented out. List each revenue route under `routes` — that's what the SEO and locale checks run against. Add `forms` and `events` for the surfaces you want the experimental checks to cover:
 
 ```ts
 // releaselens.config.ts
@@ -103,22 +103,21 @@ import { defineReleaseLens } from '@releaselens/core';
 
 export default defineReleaseLens({
   framework: 'next',
-  previewUrl: { source: 'vercel' },
   locales: ['en', 'es'],
   defaultLocale: 'en',
   routes: [
     { id: 'pricing', path: '/pricing', businessImpact: 'high', locales: ['en', 'es'] },
   ],
   forms: [
-    { id: 'pricing-lead', onRoute: 'pricing', selector: '[data-form=pricing-lead]', successState: { type: 'route', value: '/thank-you' } },
+    { id: 'pricing-lead', onRoute: 'pricing', selector: '[data-form=pricing-lead]' },
   ],
   events: [
-    { name: 'pricing_form_submit', onForm: 'pricing-lead', consent: 'analytics' },
+    { name: 'pricing_form_submit', onForm: 'pricing-lead' },
   ],
 });
 ```
 
-> **Honesty note:** `previewUrl`, `forms[].successState`, `events[].consent`, and `events[].requiredPayload` are validated and scaffolded by `init`, but not yet consumed by any check — they are forward-looking schema and will either gain checks or be removed in an upcoming release.
+> **Honesty note:** the schema also accepts `previewUrl`, `forms[].successState`, `events[].consent`, and `events[].requiredPayload`, but no check consumes them yet — they are forward-looking schema and will either gain checks or be removed in an upcoming release.
 
 ## SEO metadata resolution
 
