@@ -24,3 +24,4 @@ releaselens-report.md
 # Local-only AI guidance (internal coordination, not for the public repo)
 CLAUDE.local.md
 .claude/settings.local.json
+.codex/
