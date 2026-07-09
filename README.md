@@ -38,6 +38,8 @@ Experimental checks — behavioral surfaces where static analysis has known limi
 
 ## See it catch a regression
 
+![releaselens catching a renamed Payload CMS block with no frontend renderer — before merge](docs/assets/demo.gif)
+
 [`examples/next-marketing/broken-prs`](./examples/next-marketing/broken-prs) is the killer demo: a clean Next.js marketing app plus three "harmless" pull requests that pass type-checking and code review and ship green. The headline case is `03` — a renamed CMS block slug whose frontend renderer silently stops matching: pure contract drift, caught by `payload-block-renderer` before merge. The other two — a renamed form attribute (`01`) and a renamed analytics event (`02`) — exercise the experimental checks.
 
 ```bash
