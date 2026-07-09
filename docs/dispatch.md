@@ -15,7 +15,6 @@ Set per-routine in **Environment → Variables**:
 | `CLAUDE_CODE_OAUTH_TOKEN` | Long-lived Claude auth (`claude setup-token`) | All routines |
 | `GH_TOKEN` | `gh` CLI auth, GitHub API | Repo writes, PR comments, releases |
 | `AI_GATEWAY_API_KEY` | Vercel AI Gateway for `releaselens check --explain` | AI explanation routines |
-| `RELEASELENS_TOKEN` | Cloud API token | `releaselens push` |
 
 ### Network egress
 
