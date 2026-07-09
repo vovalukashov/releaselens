@@ -6,32 +6,24 @@ const TEMPLATE = `import { defineReleaseLens } from '@releaselens/core';
 
 export default defineReleaseLens({
   framework: 'next',
-  previewUrl: { source: 'vercel' },
-  locales: ['en', 'es'],
+  locales: ['en'],
   defaultLocale: 'en',
-  routes: [
-    {
-      id: 'pricing',
-      path: '/pricing',
-      businessImpact: 'high',
-      locales: ['en', 'es'],
-    },
-  ],
-  forms: [
-    {
-      id: 'pricing-lead',
-      onRoute: 'pricing',
-      selector: '[data-form=pricing-lead]',
-      successState: { type: 'route', value: '/thank-you' },
-    },
-  ],
-  events: [
-    {
-      name: 'pricing_form_submit',
-      onForm: 'pricing-lead',
-      consent: 'analytics',
-    },
-  ],
+
+  // Core contract checks (SEO metadata, locales) run against the routes you
+  // declare. List the pages that move money — pricing, signup, checkout.
+  routes: [{ id: 'home', path: '/', businessImpact: 'high' }],
+
+  // Payload CMS contract checks — point at your Payload config:
+  // adapters: { payload: { config: './payload.config.ts' } },
+
+  // Experimental checks (static tripwires with documented limits — see the
+  // README before gating CI on them). Declare a form or event to enable:
+  // forms: [
+  //   { id: 'pricing-lead', onRoute: 'home', selector: '[data-form=pricing-lead]' },
+  // ],
+  // events: [
+  //   { name: 'pricing_form_submit', onForm: 'pricing-lead' },
+  // ],
 });
 `;
 

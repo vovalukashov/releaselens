@@ -15,7 +15,7 @@ const program = new Command();
 program
   .name('releaselens')
   .description(
-    'Pre-merge regression detector for Next.js revenue pages: SEO, forms, analytics, localization, CMS.',
+    'Pre-merge contract checks for Next.js App Router marketing sites: SEO metadata, locales, Payload CMS — plus experimental forms/analytics tripwires.',
   )
   .version(version);
 
@@ -29,7 +29,7 @@ program
 
 program
   .command('check')
-  .description('Run release-safety checks against the current config.')
+  .description('Run contract checks against the current config.')
   .option('-c, --config <path>', 'Path to releaselens.config.{ts,mjs,js}')
   .option(
     '--ci',
