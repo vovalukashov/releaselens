@@ -2,7 +2,13 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { defineReleaseLens, runChecks } from '../src/index.js';
+import {
+  addDismissed,
+  defineReleaseLens,
+  removeMute,
+  runChecks,
+} from '../src/index.js';
+import type { Check, CheckResult, Confidence } from '../src/index.js';
 
 describe('runChecks', () => {
   it('passes on a clean config (no appDir = SEO check skipped)', async () => {
@@ -127,6 +133,205 @@ describe('runChecks', () => {
       writeDismissed(first.results[0]!.fingerprint!);
       const raw = await runChecks(cfg(), { cwd, skipFilters: true });
       expect(raw.results.length).toBe(first.results.length);
+    });
+
+    it('addDismissed persists an entry that the next run hides', async () => {
+      const first = await runChecks(cfg(), { cwd });
+      const target = first.results.find(
+        (r) => r.checkId === 'required-locales-exist',
+      )!;
+      addDismissed(join(cwd, '.releaselens', 'dismissed.json'), {
+        fingerprint: target.fingerprint!,
+        checkId: target.checkId,
+        surface: 'pricing',
+        reason: 'accepted gap',
+      });
+      const after = await runChecks(cfg(), { cwd });
+      expect(after.dismissedCount).toBe(1);
+      expect(
+        after.results.find((r) => r.fingerprint === target.fingerprint),
+      ).toBeUndefined();
+    });
+  });
+
+  describe('auto-mute (repeated dismissals on the same checkId+surface)', () => {
+    let cwd: string;
+    let dismissedPath: string;
+
+    beforeEach(() => {
+      cwd = mkdtempSync(join(tmpdir(), 'rl-automute-'));
+      dismissedPath = join(cwd, '.releaselens', 'dismissed.json');
+    });
+
+    afterEach(() => {
+      rmSync(cwd, { recursive: true, force: true });
+    });
+
+    const cfg = (rules: Record<string, { autoMuteAfter?: number }> = {}) =>
+      defineReleaseLens({
+        locales: ['en'],
+        defaultLocale: 'en',
+        appDir: './does-not-exist',
+        routes: [
+          {
+            id: 'pricing',
+            path: '/pricing',
+            locales: ['en', 'fr', 'de', 'it', 'pt'],
+          },
+        ],
+        rules,
+      });
+
+    async function localeFindings(config = cfg()) {
+      const report = await runChecks(config, { cwd });
+      return report.results.filter(
+        (r) => r.checkId === 'required-locales-exist',
+      );
+    }
+
+    function dismiss(findings: CheckResult[]) {
+      for (const f of findings) {
+        addDismissed(dismissedPath, {
+          fingerprint: f.fingerprint!,
+          checkId: f.checkId,
+          surface: 'pricing',
+          reason: 'test',
+        });
+      }
+    }
+
+    it('suppresses a new fingerprint after 3 dismissals on the same surface (default autoMuteAfter=3)', async () => {
+      const findings = await localeFindings();
+      expect(findings).toHaveLength(4);
+      dismiss(findings.slice(0, 3));
+
+      const after = await runChecks(cfg(), { cwd });
+      expect(after.dismissedCount).toBe(3);
+      expect(
+        after.results.filter((r) => r.checkId === 'required-locales-exist'),
+      ).toHaveLength(0);
+      expect(after.counts.critical).toBe(0);
+      expect(after.passed).toBe(true);
+    });
+
+    it('does not mute below the threshold (2 dismissals leave new fingerprints visible)', async () => {
+      const findings = await localeFindings();
+      dismiss(findings.slice(0, 2));
+
+      const after = await runChecks(cfg(), { cwd });
+      const visible = after.results.filter(
+        (r) => r.checkId === 'required-locales-exist',
+      );
+      expect(visible.map((r) => r.locale).sort()).toEqual(['it', 'pt']);
+      expect(after.passed).toBe(false);
+    });
+
+    it('honors rules[checkId].autoMuteAfter lowering the threshold', async () => {
+      const config = cfg({ 'required-locales-exist': { autoMuteAfter: 2 } });
+      const findings = await localeFindings(config);
+      dismiss(findings.slice(0, 2));
+
+      const after = await runChecks(config, { cwd });
+      expect(
+        after.results.filter((r) => r.checkId === 'required-locales-exist'),
+      ).toHaveLength(0);
+      expect(after.passed).toBe(true);
+    });
+
+    it('honors rules[checkId].autoMuteAfter raising the threshold', async () => {
+      const config = cfg({ 'required-locales-exist': { autoMuteAfter: 5 } });
+      const findings = await localeFindings(config);
+      dismiss(findings.slice(0, 3));
+
+      const after = await runChecks(config, { cwd });
+      const visible = after.results.filter(
+        (r) => r.checkId === 'required-locales-exist',
+      );
+      expect(visible.map((r) => r.locale)).toEqual(['pt']);
+      expect(after.passed).toBe(false);
+    });
+
+    it('removeMute clears the (checkId, surface) mute and its dismisses so findings resurface', async () => {
+      const findings = await localeFindings();
+      dismiss(findings.slice(0, 3));
+      const muted = await runChecks(cfg(), { cwd });
+      expect(
+        muted.results.filter((r) => r.checkId === 'required-locales-exist'),
+      ).toHaveLength(0);
+
+      removeMute(dismissedPath, 'required-locales-exist', 'pricing');
+
+      const after = await runChecks(cfg(), { cwd });
+      expect(after.dismissedCount).toBe(0);
+      const visible = after.results.filter(
+        (r) => r.checkId === 'required-locales-exist',
+      );
+      expect(visible.map((r) => r.locale).sort()).toEqual([
+        'de',
+        'fr',
+        'it',
+        'pt',
+      ]);
+      expect(after.passed).toBe(false);
+    });
+  });
+
+  describe('passed gate (confidence-aware critical blocking)', () => {
+    let cwd: string;
+
+    beforeEach(() => {
+      cwd = mkdtempSync(join(tmpdir(), 'rl-gate-'));
+    });
+
+    afterEach(() => {
+      rmSync(cwd, { recursive: true, force: true });
+    });
+
+    const criticalCheck = (confidence: Confidence): Check => ({
+      id: 'custom-critical',
+      description: 'emits a single critical finding',
+      defaultSeverity: 'critical',
+      defaultConfidence: confidence,
+      run: () => [
+        {
+          checkId: 'custom-critical',
+          issueKey: 'boom',
+          severity: 'critical',
+          confidence,
+          message: 'custom critical finding',
+          route: 'home',
+        },
+      ],
+    });
+
+    const cfg = () => defineReleaseLens({ appDir: './does-not-exist' });
+
+    it('a low-confidence critical does not block (passed=true)', async () => {
+      const report = await runChecks(cfg(), {
+        cwd,
+        checks: [criticalCheck('low')],
+      });
+      expect(report.counts.critical).toBe(1);
+      expect(report.results[0]?.checkId).toBe('custom-critical');
+      expect(report.results[0]?.confidence).toBe('low');
+      expect(report.passed).toBe(true);
+    });
+
+    it('a high-confidence critical blocks (passed=false)', async () => {
+      const report = await runChecks(cfg(), {
+        cwd,
+        checks: [criticalCheck('high')],
+      });
+      expect(report.counts.critical).toBe(1);
+      expect(report.passed).toBe(false);
+    });
+
+    it('a medium-confidence critical blocks (passed=false)', async () => {
+      const report = await runChecks(cfg(), {
+        cwd,
+        checks: [criticalCheck('medium')],
+      });
+      expect(report.passed).toBe(false);
     });
   });
 

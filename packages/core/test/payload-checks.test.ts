@@ -37,6 +37,34 @@ export default {
 };
 `;
 
+const PAYLOAD_KEBAB_BLOCK = `
+export default {
+  collections: [{
+    slug: 'pages',
+    fields: [
+      { name: 'blocks', type: 'blocks', blocks: [
+        { slug: 'pricing-hero', fields: [{ name: 'title', type: 'text' }] },
+      ]},
+    ],
+  }],
+};
+`;
+
+const PAYLOAD_HERO_ONLY = `
+export default {
+  collections: [{
+    slug: 'pages',
+    fields: [
+      { name: 'blocks', type: 'blocks', blocks: [
+        { slug: 'Hero', fields: [{ name: 'title', type: 'text' }] },
+      ]},
+    ],
+  }],
+};
+`;
+
+const PAYLOAD_THROWING = `throw new Error('payload config exploded');`;
+
 describe('payloadBlockRendererCheck', () => {
   it('flags blocks without a matching frontend component', async () => {
     const dir = setupProject(PAYLOAD_HERO_AND_CTA, {
@@ -66,6 +94,101 @@ describe('payloadBlockRendererCheck', () => {
     const out = await payloadBlockRendererCheck.run({ config: cfg, cwd: dir });
     expect(out).toHaveLength(0);
   });
+
+  it('matches a kebab-case slug against its PascalCase component name', async () => {
+    const dir = setupProject(PAYLOAD_KEBAB_BLOCK, {
+      'components/blocks/pricing-hero.tsx': `export function PricingHero() { return null; }`,
+    });
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      frontendDirs: ['./app', './components'],
+      adapters: { payload: { config: './payload.config.ts' } },
+    });
+    const out = await payloadBlockRendererCheck.run({ config: cfg, cwd: dir });
+    expect(out).toHaveLength(0);
+  });
+
+  it('matches a kebab-case slug against its PascalCase name with Block suffix', async () => {
+    const dir = setupProject(PAYLOAD_KEBAB_BLOCK, {
+      'components/blocks/pricing-hero.tsx': `export function PricingHeroBlock() { return null; }`,
+    });
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      frontendDirs: ['./app', './components'],
+      adapters: { payload: { config: './payload.config.ts' } },
+    });
+    const out = await payloadBlockRendererCheck.run({ config: cfg, cwd: dir });
+    expect(out).toHaveLength(0);
+  });
+
+  it('fires a finding naming all candidate identifiers when nothing matches', async () => {
+    const dir = setupProject(PAYLOAD_KEBAB_BLOCK);
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      frontendDirs: ['./app', './components'],
+      adapters: { payload: { config: './payload.config.ts' } },
+    });
+    const out = await payloadBlockRendererCheck.run({ config: cfg, cwd: dir });
+    expect(out).toHaveLength(1);
+    expect(out[0]?.checkId).toBe('payload-block-renderer');
+    expect(out[0]?.issueKey).toBe('payload-block-no-renderer');
+    expect(out[0]?.severity).toBe('critical');
+    expect(out[0]?.confidence).toBe('medium');
+    expect(out[0]?.message).toContain('pricing-hero, PricingHero, PricingHeroBlock');
+    expect(out[0]?.data).toMatchObject({ block: 'pricing-hero', source: 'inline' });
+  });
+
+  it('treats a const arrow component as a renderer', async () => {
+    const dir = setupProject(PAYLOAD_HERO_ONLY, {
+      'components/blocks/hero.tsx': `export const Hero = () => null;`,
+    });
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      frontendDirs: ['./app', './components'],
+      adapters: { payload: { config: './payload.config.ts' } },
+    });
+    const out = await payloadBlockRendererCheck.run({ config: cfg, cwd: dir });
+    expect(out).toHaveLength(0);
+  });
+
+  it('treats an imported identifier as a renderer', async () => {
+    const dir = setupProject(PAYLOAD_HERO_ONLY, {
+      'components/blocks/index.tsx': `import { Hero } from 'ui-kit';\nexport { Hero };`,
+    });
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      frontendDirs: ['./app', './components'],
+      adapters: { payload: { config: './payload.config.ts' } },
+    });
+    const out = await payloadBlockRendererCheck.run({ config: cfg, cwd: dir });
+    expect(out).toHaveLength(0);
+  });
+
+  it('treats a JSX tag usage as a renderer', async () => {
+    const dir = setupProject(PAYLOAD_HERO_ONLY, {
+      'app/page.tsx': `export default function Page() { return <Hero />; }`,
+    });
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      frontendDirs: ['./app', './components'],
+      adapters: { payload: { config: './payload.config.ts' } },
+    });
+    const out = await payloadBlockRendererCheck.run({ config: cfg, cwd: dir });
+    expect(out).toHaveLength(0);
+  });
+
+  it('silently returns empty when the payload config throws on load (current behavior)', async () => {
+    const dir = setupProject(PAYLOAD_THROWING, {
+      'components/blocks/hero.tsx': `export function Hero() { return null; }`,
+    });
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      frontendDirs: ['./app', './components'],
+      adapters: { payload: { config: './payload.config.ts' } },
+    });
+    const out = await payloadBlockRendererCheck.run({ config: cfg, cwd: dir });
+    expect(out).toHaveLength(0);
+  });
 });
 
 describe('payloadRouteCmsEntryCheck', () => {
@@ -82,6 +205,38 @@ describe('payloadRouteCmsEntryCheck', () => {
     const out = await payloadRouteCmsEntryCheck.run({ config: cfg, cwd: dir });
     expect(out).toHaveLength(1);
     expect(out[0]?.route).toBe('b');
+  });
+
+  it('emits payload-config-not-found when the configured payload config file does not exist', async () => {
+    const dir = setupProject(PAYLOAD_HERO_AND_CTA);
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      adapters: { payload: { config: './missing.config.ts' } },
+      routes: [{ id: 'a', path: '/a', cms: { collection: 'pages', slug: 'a' } }],
+    });
+    const out = await payloadRouteCmsEntryCheck.run({ config: cfg, cwd: dir });
+    expect(out).toHaveLength(1);
+    expect(out[0]?.checkId).toBe('payload-route-cms-entry');
+    expect(out[0]?.issueKey).toBe('payload-config-not-found');
+    expect(out[0]?.severity).toBe('critical');
+    expect(out[0]?.confidence).toBe('high');
+    expect(out[0]?.message).toContain('"./missing.config.ts" not found');
+  });
+
+  it('emits payload-load-failed as a low-confidence warning when the config throws on load', async () => {
+    const dir = setupProject(PAYLOAD_THROWING);
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      adapters: { payload: { config: './payload.config.ts' } },
+      routes: [{ id: 'a', path: '/a', cms: { collection: 'pages', slug: 'a' } }],
+    });
+    const out = await payloadRouteCmsEntryCheck.run({ config: cfg, cwd: dir });
+    expect(out).toHaveLength(1);
+    expect(out[0]?.checkId).toBe('payload-route-cms-entry');
+    expect(out[0]?.issueKey).toBe('payload-load-failed');
+    expect(out[0]?.severity).toBe('warning');
+    expect(out[0]?.confidence).toBe('low');
+    expect(out[0]?.message).toContain('Failed to load Payload config');
   });
 });
 
@@ -108,6 +263,18 @@ describe('payloadLocalesConsistencyCheck', () => {
     });
     const out = await payloadLocalesConsistencyCheck.run({ config: cfg, cwd: dir });
     expect(out.find((r) => r.message.includes('defaultLocale mismatch'))).toBeDefined();
+  });
+
+  it('silently returns empty when the payload config throws on load (current behavior)', async () => {
+    const dir = setupProject(PAYLOAD_THROWING);
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      locales: ['en', 'es', 'pt-br'],
+      defaultLocale: 'en',
+      adapters: { payload: { config: './payload.config.ts' } },
+    });
+    const out = await payloadLocalesConsistencyCheck.run({ config: cfg, cwd: dir });
+    expect(out).toHaveLength(0);
   });
 
   it('returns empty when no adapter configured', async () => {

@@ -212,4 +212,18 @@ describe('loadPayloadModel', () => {
     const model = await loadPayloadModel('./payload.config.ts', dir);
     expect(model.collections.map((c) => c.slug)).toEqual(['pages']);
   });
+
+  it('rejects when the config throws at load time', async () => {
+    const { dir } = writeConfig(`throw new Error('payload config exploded');`);
+    await expect(loadPayloadModel('./payload.config.ts', dir)).rejects.toThrow(
+      'payload config exploded',
+    );
+  });
+
+  it('rejects when the default export is not a config object', async () => {
+    const { dir } = writeConfig(`export default 42;`);
+    await expect(loadPayloadModel('./payload.config.ts', dir)).rejects.toThrow(
+      'did not export a config object as default',
+    );
+  });
 });

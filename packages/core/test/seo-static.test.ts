@@ -512,6 +512,182 @@ describe('seoStaticCheck — metadata re-export resolution', () => {
   });
 });
 
+describe('seoStaticCheck — no-page-file', () => {
+  it('reports a critical finding when a declared route has no page file', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rl-nopage-'));
+    mkdirSync(join(dir, 'app'), { recursive: true });
+    writeFileSync(
+      join(dir, 'app/page.tsx'),
+      `export const metadata = { title: 'Home' };\nexport default function P() { return null; }`,
+    );
+
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      routes: [{ id: 'pricing', path: '/pricing', businessImpact: 'high' }],
+    });
+    const out = await seoStaticCheck.run({ config: cfg, cwd: dir });
+    const finding = out.find((r) => r.issueKey === 'no-page-file');
+    expect(finding).toBeDefined();
+    expect(finding?.checkId).toBe('seo-static');
+    expect(finding?.severity).toBe('critical');
+    expect(finding?.confidence).toBe('high');
+    expect(finding?.route).toBe('pricing');
+    expect(finding?.message).toContain('Route "pricing"');
+    expect(finding?.message).toContain('no page file found');
+  });
+});
+
+describe('seoStaticCheck — missing-hreflang', () => {
+  it('warns when a multi-locale route has no alternates.languages', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rl-hreflang-'));
+    mkdirSync(join(dir, 'app/pricing'), { recursive: true });
+    writeFileSync(
+      join(dir, 'app/pricing/page.tsx'),
+      `export const metadata = { title: 'Pricing', description: 'D', alternates: { canonical: 'https://example.com/pricing' } };\nexport default function P() { return null; }`,
+    );
+
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      routes: [
+        {
+          id: 'pricing',
+          path: '/pricing',
+          businessImpact: 'high',
+          locales: ['en', 'es'],
+        },
+      ],
+    });
+    const out = await seoStaticCheck.run({ config: cfg, cwd: dir });
+    const finding = out.find((r) => r.issueKey === 'missing-hreflang');
+    expect(finding).toBeDefined();
+    expect(finding?.severity).toBe('warning');
+    expect(finding?.confidence).toBe('high');
+    expect(finding?.route).toBe('pricing');
+    expect(finding?.message).toContain('declares 2 locales');
+  });
+
+  it('does not warn when alternates.languages is present', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rl-hreflang-'));
+    mkdirSync(join(dir, 'app/pricing'), { recursive: true });
+    writeFileSync(
+      join(dir, 'app/pricing/page.tsx'),
+      `export const metadata = { title: 'Pricing', description: 'D', alternates: { canonical: 'https://example.com/pricing', languages: { en: 'https://example.com/pricing', es: 'https://example.com/es/pricing' } } };\nexport default function P() { return null; }`,
+    );
+
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      routes: [
+        {
+          id: 'pricing',
+          path: '/pricing',
+          businessImpact: 'high',
+          locales: ['en', 'es'],
+        },
+      ],
+    });
+    const out = await seoStaticCheck.run({ config: cfg, cwd: dir });
+    expect(out.find((r) => r.issueKey === 'missing-hreflang')).toBeUndefined();
+  });
+});
+
+describe('seoStaticCheck — noindex on business-critical routes', () => {
+  it('flags a critical finding for string robots noindex on businessImpact=high', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rl-noindex-'));
+    mkdirSync(join(dir, 'app/pricing'), { recursive: true });
+    writeFileSync(
+      join(dir, 'app/pricing/page.tsx'),
+      `export const metadata = { title: 'Pricing', description: 'D', alternates: { canonical: '/pricing' }, robots: 'noindex, nofollow' };\nexport default function P() { return null; }`,
+    );
+
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      routes: [{ id: 'pricing', path: '/pricing', businessImpact: 'high' }],
+    });
+    const out = await seoStaticCheck.run({ config: cfg, cwd: dir });
+    const finding = out.find(
+      (r) => r.issueKey === 'noindex-on-business-critical',
+    );
+    expect(finding).toBeDefined();
+    expect(finding?.severity).toBe('critical');
+    expect(finding?.confidence).toBe('high');
+    expect(finding?.route).toBe('pricing');
+    expect(finding?.message).toContain('noindex');
+  });
+
+  it('flags the object form robots: { index: false } as well', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rl-noindex-'));
+    mkdirSync(join(dir, 'app/pricing'), { recursive: true });
+    writeFileSync(
+      join(dir, 'app/pricing/page.tsx'),
+      `export const metadata = { title: 'Pricing', description: 'D', alternates: { canonical: '/pricing' }, robots: { index: false, follow: false } };\nexport default function P() { return null; }`,
+    );
+
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      routes: [{ id: 'pricing', path: '/pricing', businessImpact: 'high' }],
+    });
+    const out = await seoStaticCheck.run({ config: cfg, cwd: dir });
+    const finding = out.find(
+      (r) => r.issueKey === 'noindex-on-business-critical',
+    );
+    expect(finding).toBeDefined();
+    expect(finding?.severity).toBe('critical');
+  });
+});
+
+describe('seoStaticCheck — no-metadata', () => {
+  it('warns when a page has no metadata export and no layouts', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rl-nometa-'));
+    mkdirSync(join(dir, 'app'), { recursive: true });
+    writeFileSync(
+      join(dir, 'app/page.tsx'),
+      `export default function P() { return null; }`,
+    );
+
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      routes: [{ id: 'home', path: '/', businessImpact: 'medium' }],
+    });
+    const out = await seoStaticCheck.run({ config: cfg, cwd: dir });
+    const finding = out.find((r) => r.issueKey === 'no-metadata');
+    expect(finding).toBeDefined();
+    expect(finding?.severity).toBe('warning');
+    expect(finding?.confidence).toBe('high');
+    expect(finding?.route).toBe('home');
+    expect(finding?.message).toContain('Route "home"');
+    expect(out.find((r) => r.issueKey === 'missing-title')).toBeUndefined();
+  });
+});
+
+describe('seoStaticCheck — dynamic generateMetadata skip', () => {
+  it('emits an info skip finding and no missing-field findings for a non-extractable generateMetadata', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rl-dyn-'));
+    mkdirSync(join(dir, 'app/post'), { recursive: true });
+    writeFileSync(
+      join(dir, 'app/post/page.tsx'),
+      `import { buildMeta } from '@lib/meta';\nexport async function generateMetadata({ params }) { return buildMeta(params); }\nexport default function P() { return null; }`,
+    );
+
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      routes: [{ id: 'post', path: '/post', businessImpact: 'high' }],
+    });
+    const out = await seoStaticCheck.run({ config: cfg, cwd: dir });
+    const finding = out.find(
+      (r) => r.issueKey === 'dynamic-generate-metadata',
+    );
+    expect(finding).toBeDefined();
+    expect(finding?.severity).toBe('info');
+    expect(finding?.confidence).toBe('low');
+    expect(finding?.route).toBe('post');
+    expect(finding?.message).toContain('generateMetadata');
+    expect(out.find((r) => r.issueKey === 'missing-title')).toBeUndefined();
+    expect(
+      out.find((r) => r.issueKey === 'missing-description'),
+    ).toBeUndefined();
+  });
+});
+
 describe('mergeSeoMetadata', () => {
   it('inherits layout metadata into a page that defines none', () => {
     const layout = parseSeoMetadata(`

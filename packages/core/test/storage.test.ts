@@ -8,6 +8,11 @@ import {
   readBaseline,
   writeBaseline,
 } from '../src/storage/baseline.js';
+import {
+  addDismissed,
+  readDismissed,
+  removeMute,
+} from '../src/storage/dismissed.js';
 import type { CheckResult } from '../src/types.js';
 
 function makeResult(overrides: Partial<CheckResult>): CheckResult {
@@ -110,5 +115,93 @@ describe('baseline storage', () => {
 
   it('returns null when the file does not exist', () => {
     expect(readBaseline(join(dir, 'missing.json'))).toBeNull();
+  });
+});
+
+describe('dismissed storage', () => {
+  let dir: string;
+  let file: string;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'rl-dismissed-'));
+    file = join(dir, 'dismissed.json');
+  });
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  const entry = (
+    fingerprint: string,
+    checkId = 'seo-static',
+    surface = 'home',
+  ) => ({
+    fingerprint,
+    checkId,
+    surface,
+    reason: 'accepted tradeoff',
+  });
+
+  describe('addDismissed', () => {
+    it('persists fingerprint, checkId, surface, reason, and a dismissedAt timestamp', () => {
+      const next = addDismissed(file, entry('fp-1'));
+      expect(next.entries).toHaveLength(1);
+
+      const raw = JSON.parse(readFileSync(file, 'utf8'));
+      expect(raw.version).toBe(1);
+      expect(raw.entries[0]).toMatchObject({
+        fingerprint: 'fp-1',
+        checkId: 'seo-static',
+        surface: 'home',
+        reason: 'accepted tradeoff',
+      });
+      expect(Number.isNaN(Date.parse(raw.entries[0].dismissedAt))).toBe(false);
+    });
+
+    it('is idempotent per fingerprint and keeps the original entry', () => {
+      addDismissed(file, entry('fp-1'));
+      const again = addDismissed(file, {
+        ...entry('fp-1'),
+        reason: 'second attempt',
+      });
+      expect(again.entries).toHaveLength(1);
+      expect(again.entries[0]?.reason).toBe('accepted tradeoff');
+      expect(readDismissed(file).entries).toHaveLength(1);
+    });
+
+    it('appends distinct fingerprints in dismissal order', () => {
+      addDismissed(file, entry('fp-1'));
+      const next = addDismissed(file, entry('fp-2'));
+      expect(next.entries.map((e) => e.fingerprint)).toEqual(['fp-1', 'fp-2']);
+      expect(readDismissed(file).entries.map((e) => e.fingerprint)).toEqual([
+        'fp-1',
+        'fp-2',
+      ]);
+    });
+  });
+
+  describe('removeMute', () => {
+    it('removes every entry for (checkId, surface) including single-fingerprint dismisses', () => {
+      addDismissed(file, entry('fp-1'));
+      addDismissed(file, entry('fp-2'));
+      addDismissed(file, entry('fp-3'));
+      addDismissed(file, entry('fp-4', 'seo-static', 'pricing'));
+      addDismissed(file, entry('fp-5', 'locales-static', 'home'));
+
+      const next = removeMute(file, 'seo-static', 'home');
+
+      expect(next.entries.map((e) => e.fingerprint)).toEqual(['fp-4', 'fp-5']);
+      expect(readDismissed(file).entries.map((e) => e.fingerprint)).toEqual([
+        'fp-4',
+        'fp-5',
+      ]);
+    });
+
+    it('leaves other (checkId, surface) pairs untouched when nothing matches', () => {
+      addDismissed(file, entry('fp-1'));
+      const next = removeMute(file, 'seo-static', 'pricing');
+      expect(next.entries.map((e) => e.fingerprint)).toEqual(['fp-1']);
+      expect(readDismissed(file).entries).toHaveLength(1);
+    });
   });
 });

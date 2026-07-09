@@ -37,6 +37,112 @@ describe('localesStaticCheck', () => {
     expect(out.find((r) => r.locale === 'es' && r.severity === 'critical')).toBeDefined();
   });
 
+  it('flags localized page that exports no metadata when default has it', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rl-locales-'));
+    mkdirSync(join(dir, 'app/pricing'), { recursive: true });
+    mkdirSync(join(dir, 'app/es/pricing'), { recursive: true });
+    writeFileSync(
+      join(dir, 'app/pricing/page.tsx'),
+      `export const metadata = { title: 'Pricing', alternates: { canonical: 'https://x.com/pricing' } };\nexport default function P() { return null; }`,
+    );
+    writeFileSync(
+      join(dir, 'app/es/pricing/page.tsx'),
+      `export default function P() { return null; }`,
+    );
+
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      locales: ['en', 'es'],
+      defaultLocale: 'en',
+      routes: [{ id: 'pricing', path: '/pricing', locales: ['en', 'es'] }],
+    });
+    const out = await localesStaticCheck.run({ config: cfg, cwd: dir });
+    const finding = out.find((r) => r.issueKey === 'localized-metadata-missing');
+    expect(finding).toBeDefined();
+    expect(finding?.severity).toBe('warning');
+    expect(finding?.confidence).toBe('high');
+    expect(finding?.route).toBe('pricing');
+    expect(finding?.locale).toBe('es');
+    expect(out).toHaveLength(1);
+  });
+
+  it('flags localized metadata without a title when default has one', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rl-locales-'));
+    mkdirSync(join(dir, 'app/pricing'), { recursive: true });
+    mkdirSync(join(dir, 'app/es/pricing'), { recursive: true });
+    writeFileSync(
+      join(dir, 'app/pricing/page.tsx'),
+      `export const metadata = { title: 'Pricing' };\nexport default function P() { return null; }`,
+    );
+    writeFileSync(
+      join(dir, 'app/es/pricing/page.tsx'),
+      `export const metadata = { description: 'Precios' };\nexport default function P() { return null; }`,
+    );
+
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      locales: ['en', 'es'],
+      defaultLocale: 'en',
+      routes: [{ id: 'pricing', path: '/pricing', locales: ['en', 'es'] }],
+    });
+    const out = await localesStaticCheck.run({ config: cfg, cwd: dir });
+    const finding = out.find((r) => r.issueKey === 'localized-title-missing');
+    expect(finding).toBeDefined();
+    expect(finding?.severity).toBe('warning');
+    expect(finding?.locale).toBe('es');
+    expect(finding?.message).toContain('missing `metadata.title`');
+  });
+
+  it('flags localized metadata without a canonical when default has one', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rl-locales-'));
+    mkdirSync(join(dir, 'app/pricing'), { recursive: true });
+    mkdirSync(join(dir, 'app/es/pricing'), { recursive: true });
+    writeFileSync(
+      join(dir, 'app/pricing/page.tsx'),
+      `export const metadata = { title: 'Pricing', alternates: { canonical: 'https://x.com/pricing' } };\nexport default function P() { return null; }`,
+    );
+    writeFileSync(
+      join(dir, 'app/es/pricing/page.tsx'),
+      `export const metadata = { title: 'Precios' };\nexport default function P() { return null; }`,
+    );
+
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      locales: ['en', 'es'],
+      defaultLocale: 'en',
+      routes: [{ id: 'pricing', path: '/pricing', locales: ['en', 'es'] }],
+    });
+    const out = await localesStaticCheck.run({ config: cfg, cwd: dir });
+    const finding = out.find((r) => r.issueKey === 'localized-canonical-missing');
+    expect(finding).toBeDefined();
+    expect(finding?.severity).toBe('critical');
+    expect(finding?.locale).toBe('es');
+    expect(finding?.message).toContain('missing `metadata.alternates.canonical`');
+  });
+
+  it('passes when the localized canonical is present and distinct', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rl-locales-'));
+    mkdirSync(join(dir, 'app/pricing'), { recursive: true });
+    mkdirSync(join(dir, 'app/es/pricing'), { recursive: true });
+    writeFileSync(
+      join(dir, 'app/pricing/page.tsx'),
+      `export const metadata = { title: 'Pricing', alternates: { canonical: 'https://x.com/pricing' } };\nexport default function P() { return null; }`,
+    );
+    writeFileSync(
+      join(dir, 'app/es/pricing/page.tsx'),
+      `export const metadata = { title: 'Precios', alternates: { canonical: 'https://x.com/es/pricing' } };\nexport default function P() { return null; }`,
+    );
+
+    const cfg = defineReleaseLens({
+      appDir: './app',
+      locales: ['en', 'es'],
+      defaultLocale: 'en',
+      routes: [{ id: 'pricing', path: '/pricing', locales: ['en', 'es'] }],
+    });
+    const out = await localesStaticCheck.run({ config: cfg, cwd: dir });
+    expect(out).toHaveLength(0);
+  });
+
   it('flags canonical pointing to default-locale URL on localized variant', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'rl-locales-'));
     mkdirSync(join(dir, 'app/pricing'), { recursive: true });
