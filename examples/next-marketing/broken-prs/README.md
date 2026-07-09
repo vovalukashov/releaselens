@@ -16,8 +16,8 @@ on exactly one regression — with the diff a reviewer would have rubber-stamped
 
 | Patch | The "harmless" PR | What ReleaseLens catches | Who else catches it? |
 | --- | --- | --- | --- |
-| `01-forms.patch` | Rename a `data-form` attribute while restyling the CTA | `form-not-found` — the declared lead form no longer exists on `/pricing` | No one. The page still renders; the form just stopped being the lead form. |
-| `02-analytics-drift.patch` | Rename the tracked event (`pricing_form_submit` → `pricing_submit`) | `event-not-tracked` for the declared event + `event-undeclared` for the new name | No one. No error, no type failure; the funnel just goes dark. |
+| `01-forms.patch` | Rename a `data-form` attribute while restyling the CTA | `form-not-found` — the declared lead form no longer exists on `/pricing` | Nothing catches it pre-merge. The page still renders; the form just stopped being the lead form. |
+| `02-analytics-drift.patch` | Rename the tracked event (`pricing_form_submit` → `pricing_submit`) | `event-not-tracked` for the declared event + `event-undeclared` for the new name | Nothing catches it pre-merge; runtime analytics validators see it only after deploy. |
 | `03-cms-drift.patch` | Rename a Payload block slug (`PricingHero` → `PricingHeroV2`) | `payload-block-no-renderer` — the renamed block has no frontend renderer | No one until an editor adds the block and it renders blank in production. |
 
 ## Run it

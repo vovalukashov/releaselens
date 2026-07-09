@@ -4,7 +4,7 @@ Thanks for your interest in releaselens. This is an early OSS project — issues
 
 ## Ground rules
 
-- **Scope.** releaselens is a pre-merge regression gate for revenue-critical Next.js surfaces (routes, forms, analytics, locales, CMS). It is intentionally *not* an SEO crawler, a synthetic monitor, a visual-regression tool, or a CMS. Changes that fit that frame are the ones most likely to be merged.
+- **Scope.** releaselens is a pre-merge contract gate for revenue-critical Next.js App Router surfaces — SEO metadata, locales, and CMS blocks at the core, plus experimental forms/analytics tripwires. It is intentionally *not* an SEO crawler, a synthetic monitor, a visual-regression tool, a runtime analytics validator, or a CMS. Changes that fit that frame are the ones most likely to be merged.
 - **Repository language is English** — code, comments, identifiers, docs, commit messages, and PR descriptions.
 - **Discuss big changes first.** For a new check, config field, or adapter, open an issue before a large PR.
 

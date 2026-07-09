@@ -1,6 +1,6 @@
 # @releaselens/core
 
-Engine behind the [`releaselens`](https://www.npmjs.com/package/releaselens) CLI: the Zod config schema, public types, the check runner, FP-budget storage, the 10 default checks (SEO, forms, analytics, locales, Payload CMS, plus config-integrity), the Payload adapter, and the AI explainer.
+Engine behind the [`releaselens`](https://www.npmjs.com/package/releaselens) CLI: the Zod config schema, public types, the check runner, FP-budget storage, the 8 core contract checks (SEO, locales, Payload CMS, config integrity) plus 2 experimental checks (forms, analytics), the Payload adapter, and the AI explainer.
 
 Most users should install the CLI (`releaselens`) rather than this package directly. Import `defineReleaseLens` from here in your config file:
 

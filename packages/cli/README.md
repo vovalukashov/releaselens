@@ -1,8 +1,8 @@
 # releaselens
 
-> Tell me what this PR breaks before it ships.
+> Pre-merge contract diff for Next.js App Router marketing sites — before merge, not after deploy.
 
-`releaselens` is a self-serve, OSS pre-merge regression detector for Next.js revenue pages. On every pull request it tells you which routes, forms, analytics events, locales, or SEO tags a change can break — before the merge button.
+`releaselens` is a self-serve, OSS pre-merge contract checker for Next.js App Router marketing sites. On every pull request it diffs the contracts your revenue pages depend on — SEO metadata, locale coverage, and Payload CMS block↔renderer wiring — plus experimental forms/analytics tripwires, and tells you what a change breaks before the merge button.
 
 ## Quickstart
 
@@ -27,7 +27,7 @@ npx releaselens check    # run checks and print a report
 - uses: actions/setup-node@v6
   with:
     node-version: '20'
-- uses: vovalukashov/releaselens/actions/releaselens-check@main
+- uses: vovalukashov/releaselens/actions/releaselens-check@v0.1.3
 ```
 
 See the [project README](https://github.com/vovalukashov/releaselens#readme) for the full config schema, the list of checks, and the FP-budget model.

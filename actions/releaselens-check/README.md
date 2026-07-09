@@ -45,6 +45,7 @@ the action falls back to fetching it on the fly via `npx --yes releaselens`.
 ## Notes
 
 - The action runs the CLI via `npx --yes releaselens`, so it works under npm, yarn, or pnpm. It uses the locally installed binary when present and downloads the published package otherwise.
+- Pinning the action tag pins this wrapper, not the analyzer: without `releaselens` in your `devDependencies`, `npx` resolves the **latest published** CLI. The devDependency is the only real CLI pin today.
 - Findings already captured in `.releaselens/baseline.json` are filtered automatically.
 - Findings dismissed via `releaselens dismiss <fingerprint>` are filtered automatically.
 - Low-confidence critical findings do not block the workflow even when `ci: true`.
