@@ -1,6 +1,6 @@
 {
   "name": "releaselens",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Pre-merge contract checks for Next.js App Router marketing sites: SEO metadata, locales, Payload CMS.",
   "license": "MIT",
   "keywords": [
