@@ -73,23 +73,36 @@ export const localesStaticCheck: Check = {
           continue;
         }
 
-        if (defaultMeta.title && !localizedMeta.title) {
+        // A page whose generateMetadata we could not statically extract may
+        // compute every field per locale — nothing provable to compare.
+        if (localizedMeta.hasGenerateMetadata && !localizedMeta.hasMetadata) {
+          continue;
+        }
+
+        const presenceConfidence =
+          localizedMeta.hasDynamicSpread ||
+          localizedMeta.hasMetadataHelperWrap ||
+          localizedMeta.hasGenerateMetadata
+            ? 'low'
+            : 'high';
+
+        if (defaultMeta.hasTitle && !localizedMeta.hasTitle) {
           results.push({
             checkId: CHECK_ID,
             issueKey: 'localized-title-missing',
             severity: 'warning',
-            confidence: 'high',
+            confidence: presenceConfidence,
             message: `Route "${route.id}" locale "${locale}": missing \`metadata.title\` (default locale has one).`,
             route: route.id,
             locale,
           });
         }
-        if (defaultMeta.canonical && !localizedMeta.canonical) {
+        if (defaultMeta.hasCanonical && !localizedMeta.hasCanonical) {
           results.push({
             checkId: CHECK_ID,
             issueKey: 'localized-canonical-missing',
             severity: 'critical',
-            confidence: 'high',
+            confidence: presenceConfidence,
             message: `Route "${route.id}" locale "${locale}": missing \`metadata.alternates.canonical\` (default locale has one).`,
             route: route.id,
             locale,

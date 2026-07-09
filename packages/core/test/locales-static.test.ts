@@ -162,6 +162,76 @@ describe('localesStaticCheck', () => {
   });
 });
 
+describe('localesStaticCheck — non-literal localized metadata', () => {
+  function scaffold(defaultPage: string, localizedPage: string) {
+    const dir = mkdtempSync(join(tmpdir(), 'rl-locales-'));
+    mkdirSync(join(dir, 'app/pricing'), { recursive: true });
+    mkdirSync(join(dir, 'app/es/pricing'), { recursive: true });
+    writeFileSync(join(dir, 'app/pricing/page.tsx'), defaultPage);
+    writeFileSync(join(dir, 'app/es/pricing/page.tsx'), localizedPage);
+    return dir;
+  }
+
+  const cfg = () =>
+    defineReleaseLens({
+      appDir: './app',
+      locales: ['en', 'es'],
+      defaultLocale: 'en',
+      routes: [{ id: 'pricing', path: '/pricing', locales: ['en', 'es'] }],
+    });
+
+  it('does not flag a localized title that is a non-literal expression', async () => {
+    const dir = scaffold(
+      `export const metadata = { title: 'Pricing' };\nexport default function P() { return null; }`,
+      `export const metadata = { title: t('pricing') };\nexport default function P() { return null; }`,
+    );
+    const out = await localesStaticCheck.run({ config: cfg(), cwd: dir });
+    expect(out.find((r) => r.issueKey === 'localized-title-missing')).toBeUndefined();
+  });
+
+  it('does not flag a localized canonical that is a non-literal expression', async () => {
+    const dir = scaffold(
+      `export const metadata = { title: 'Pricing', alternates: { canonical: 'https://x.com/pricing' } };\nexport default function P() { return null; }`,
+      `export const metadata = { title: 'Precios', alternates: { canonical: buildCanonical('es') } };\nexport default function P() { return null; }`,
+    );
+    const out = await localesStaticCheck.run({ config: cfg(), cwd: dir });
+    expect(out.find((r) => r.issueKey === 'localized-canonical-missing')).toBeUndefined();
+    expect(out.find((r) => r.issueKey === 'localized-canonical-collision')).toBeUndefined();
+  });
+
+  it('downgrades missing-field findings to low confidence under a dynamic spread', async () => {
+    const dir = scaffold(
+      `export const metadata = { title: 'Pricing', alternates: { canonical: 'https://x.com/pricing' } };\nexport default function P() { return null; }`,
+      `export const metadata = { ...getBase('es') };\nexport default function P() { return null; }`,
+    );
+    const out = await localesStaticCheck.run({ config: cfg(), cwd: dir });
+    const title = out.find((r) => r.issueKey === 'localized-title-missing');
+    const canonical = out.find((r) => r.issueKey === 'localized-canonical-missing');
+    expect(title?.confidence).toBe('low');
+    expect(canonical?.confidence).toBe('low');
+  });
+
+  it('skips field comparisons when the localized page uses non-extractable generateMetadata', async () => {
+    const dir = scaffold(
+      `export const metadata = { title: 'Pricing', alternates: { canonical: 'https://x.com/pricing' } };\nexport default function P() { return null; }`,
+      `export async function generateMetadata({ params }) { return buildMeta(params); }\nexport default function P() { return null; }`,
+    );
+    const out = await localesStaticCheck.run({ config: cfg(), cwd: dir });
+    expect(out).toHaveLength(0);
+  });
+
+  it('flags a localized title missing even when the default title is non-literal', async () => {
+    const dir = scaffold(
+      `export const metadata = { title: siteTitle };\nexport default function P() { return null; }`,
+      `export const metadata = { description: 'Precios' };\nexport default function P() { return null; }`,
+    );
+    const out = await localesStaticCheck.run({ config: cfg(), cwd: dir });
+    const finding = out.find((r) => r.issueKey === 'localized-title-missing');
+    expect(finding).toBeDefined();
+    expect(finding?.confidence).toBe('high');
+  });
+});
+
 describe('localesStaticCheck — dynamic [locale] segment (next-intl)', () => {
   it('does not emit locale-page-missing for a single [locale] page serving all locales', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'rl-locales-'));
