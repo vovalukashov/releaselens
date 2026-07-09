@@ -1,22 +1,44 @@
 # ReleaseLens
 
-> **Tell me what this PR breaks before it ships.**
+> **Pre-merge contract diff for Next.js App Router marketing sites — before merge, not after deploy.**
 
 [![npm](https://img.shields.io/npm/v/releaselens)](https://www.npmjs.com/package/releaselens)
 [![CI](https://github.com/vovalukashov/releaselens/actions/workflows/ci.yml/badge.svg)](https://github.com/vovalukashov/releaselens/actions/workflows/ci.yml)
 [![license](https://img.shields.io/npm/l/releaselens)](./LICENSE)
 
-`releaselens` is a self-serve, OSS pre-merge regression detector for Next.js revenue pages. On every pull request it tells you which routes, forms, analytics events, locales, or SEO tags this change can break — before the merge button.
+`releaselens` is a self-serve, OSS pre-merge contract checker for Next.js App Router marketing sites. On every pull request it diffs the contracts your revenue pages depend on — SEO metadata (title / description / canonical / hreflang / noindex, resolved the way Next.js resolves it), locale coverage, and Payload CMS block↔renderer wiring — and tells you what this change breaks before the merge button, not after the deploy.
 
-Not an AI code review. Not synthetic monitoring. Not visual regression. Not a CMS or observability backend. A thin orchestrator that runs targeted checks on revenue-critical web surfaces.
+It works by static analysis of your `app/` tree and CMS config — no crawler, no browser, no deployed preview. Not an AI code review. Not synthetic monitoring. Not visual regression. Not a CMS or observability backend. A thin orchestrator that runs targeted contract checks on revenue-critical web surfaces.
+
+Two additional checks — forms and analytics events — ship as [experimental](#experimental-checks-forms--analytics): useful pre-merge tripwires, with their static-analysis limits documented honestly.
 
 ## Status
 
-Pre-alpha. All 10 default checks are live (SEO, forms, analytics, locales, Payload CMS, plus 3 config-integrity checks). The GitHub Action, FP-budget model, and AI explanations are all shipped.
+Pre-alpha. 8 core contract checks are live (SEO, locales, Payload CMS, config integrity), plus 2 experimental checks (forms, analytics events). The GitHub Action, FP-budget model, and AI explanations are all shipped.
+
+## What it checks
+
+Core contract checks — declarative surfaces where static analysis is the right tool; critical findings block CI:
+
+| Check | What it catches |
+| --- | --- |
+| `seo-static` | Missing title / description / canonical / hreflang or an accidental noindex on a declared route, resolved through layout cascades, re-exports, and shared metadata bases. |
+| `locales-static` | A locale variant missing its page or metadata — covers both subpath (`app/es/…`) and dynamic `[locale]` i18n models. |
+| `payload-block-renderer` | A Payload CMS block with no matching frontend component — a renamed or new block whose renderer was never built. |
+| `payload-route-cms-entry` | A route pointing at a Payload collection that does not exist. |
+| `payload-locales-consistency` | Locale lists drifting between `releaselens.config.ts` and the Payload config. |
+| `required-locales-exist`, `form-references-route`, `event-target-valid` | Config integrity — declarations referencing routes, forms, or locales that are not there. |
+
+Experimental checks — behavioral surfaces where static analysis has known limits (see [Experimental checks](#experimental-checks-forms--analytics)):
+
+| Check | What it catches |
+| --- | --- |
+| `forms-static` | A declared form whose selector no longer matches anything, or a form left without a submit mechanism. |
+| `analytics-static` | A declared conversion event with no tracking call left in the code. |
 
 ## See it catch a regression
 
-[`examples/next-marketing/broken-prs`](./examples/next-marketing/broken-prs) is the killer demo: a clean Next.js marketing app plus three "harmless" pull requests — a renamed form attribute, a renamed analytics event, a renamed CMS block. Each one passes type-checking and code review and ships green; each one silently breaks a revenue surface. ReleaseLens turns red on exactly the regression — with the diff a reviewer would have rubber-stamped.
+[`examples/next-marketing/broken-prs`](./examples/next-marketing/broken-prs) is the killer demo: a clean Next.js marketing app plus three "harmless" pull requests that pass type-checking and code review and ship green. The headline case is `03` — a renamed CMS block slug whose frontend renderer silently stops matching: pure contract drift, caught by `payload-block-renderer` before merge. The other two — a renamed form attribute (`01`) and a renamed analytics event (`02`) — exercise the experimental checks.
 
 ```bash
 cd examples/next-marketing
@@ -44,7 +66,6 @@ npx releaselens check --json             # machine-readable output
 npx releaselens check --report           # also write releaselens-report.md (PR artifact)
 npx releaselens check --update-baseline  # snapshot findings so only NEW issues surface (see FP-budget)
 npx releaselens dismiss <fp> --reason "" # silence one finding by fingerprint
-npx releaselens push --pr 42             # run + upload report to the hosted backend
 ```
 
 ### For regular use
@@ -54,6 +75,8 @@ npx releaselens push --pr 42             # run + upload report to the hosted bac
 ```bash
 npm i -D releaselens     # or: pnpm add -D releaselens / yarn add -D releaselens
 ```
+
+The devDependency pin matters more than it looks: the GitHub Action's tag pins the wrapper script, not the CLI — inside, it runs `npx --yes releaselens`, which uses your project's installed `releaselens` when present and otherwise resolves the **latest published** version.
 
 For CI, the simplest path is the [GitHub Action](#github-action) — it installs releaselens, runs `check --ci`, and comments the findings on each pull request:
 
@@ -92,6 +115,46 @@ export default defineReleaseLens({
   ],
 });
 ```
+
+> **Honesty note:** `previewUrl`, `forms[].successState`, `events[].consent`, and `events[].requiredPayload` are validated and scaffolded by `init`, but not yet consumed by any check — they are forward-looking schema and will either gain checks or be removed in an upcoming release.
+
+## SEO metadata resolution
+
+`seo-static` resolves a route's effective metadata the way Next.js does, then checks for missing title / description / canonical / hreflang / noindex. It understands:
+
+- inline `export const metadata = { … }` and `export async function generateMetadata()`;
+- helper wrappers (`export const metadata = setMetadata({ … })`);
+- layout cascade — a page inherits `metadata` declared in any parent `layout`;
+- **re-export from a separate module** — `export { default as metadata } from '@/contents/metadata'`. The check follows the specifier (relative paths and tsconfig `paths` aliases) into the module that holds the object and reads the real fields, so a page whose title/description live in a shared contents file is not falsely flagged;
+- **shared base metadata** — `export const metadata = defaultMetadata` (imported identifier) and spreads such as `export const metadata = { ...defaultMetadata, title: '…' }`. The imported base is resolved into its module and merged, so pages and layouts built on a common base object keep their inherited title/description/canonical.
+
+## Localization models
+
+`locales-static` understands the two ways a Next.js App Router site does i18n:
+
+- **Subpath dirs** — a physical page tree per locale (`app/es/pricing/page.tsx`). For each route with `locales`, the check looks up the localized file and compares its metadata against the default locale (missing page, missing/duplicated canonical, etc.).
+- **Dynamic `[locale]` segment** (next-intl / next-i18next) — one physical page (`app/[locale]/[slug]/page.tsx`) serves every locale through the URL param. The check detects this automatically when a route path contains the locale segment and **does not** expect a per-locale file. Instead it flags a route that exports **static** `metadata`: a module-scope object can't read the `[locale]` param, so title, description and canonical would be identical for every locale and no hreflang is emitted — use `generateMetadata({ params })` to vary them per locale.
+
+The dynamic segment defaults to `[locale]`. If yours is named differently (e.g. `[lang]`), set `localeParam` at the config root:
+
+```ts
+export default defineReleaseLens({
+  localeParam: 'lang',
+  routes: [{ id: 'home', path: '/[lang]', locales: ['en', 'es'] }],
+});
+```
+
+## Payload CMS
+
+When `adapters.payload` points at your `payload.config.ts`, releaselens loads it (heavy editor/db/storage imports are stubbed, so no database or build is needed) and extracts a normalized content model: collections, globals, localization, and **blocks**. Blocks are discovered both from `type: 'blocks'` fields and from the lexical rich-text editor — `lexicalEditor({ features: [BlocksFeature({ blocks: [...] })] })`, including blocks nested inside other blocks. The `payload-block-renderer` check then verifies every block slug has a matching frontend component, catching CMS-model/renderer drift (a renamed or new block whose renderer was never built).
+
+## Experimental checks (forms & analytics)
+
+`forms-static` and `analytics-static` run whenever you declare `forms` or `events` — omit the declarations and they no-op. They are experimental because behavioral surfaces are where static analysis is weakest, and the limits are worth knowing before you gate CI on them:
+
+- Both match **string literals only**. A dynamic attribute (`data-form={variant}`) never matches a selector, and `track(EVENTS.PRICING_SUBMIT)` is invisible to the analytics check.
+- Form matching is **global across your source dirs**, not scoped to the declared `onRoute` — a matching attribute on a different page still counts as found.
+- Verifying that a form actually submits or an event actually fires is runtime territory (Playwright, analytics-governance tools). These checks are cheap pre-merge tripwires for renamed or removed identifiers — not a replacement for runtime validation.
 
 ### Forms
 
@@ -136,36 +199,6 @@ analytics: {
 },
 ```
 
-## SEO metadata resolution
-
-`seo-static` resolves a route's effective metadata the way Next.js does, then checks for missing title / description / canonical / hreflang / noindex. It understands:
-
-- inline `export const metadata = { … }` and `export async function generateMetadata()`;
-- helper wrappers (`export const metadata = setMetadata({ … })`);
-- layout cascade — a page inherits `metadata` declared in any parent `layout`;
-- **re-export from a separate module** — `export { default as metadata } from '@/contents/metadata'`. The check follows the specifier (relative paths and tsconfig `paths` aliases) into the module that holds the object and reads the real fields, so a page whose title/description live in a shared contents file is not falsely flagged;
-- **shared base metadata** — `export const metadata = defaultMetadata` (imported identifier) and spreads such as `export const metadata = { ...defaultMetadata, title: '…' }`. The imported base is resolved into its module and merged, so pages and layouts built on a common base object keep their inherited title/description/canonical.
-
-## Localization models
-
-`locales-static` understands the two ways a Next.js App Router site does i18n:
-
-- **Subpath dirs** — a physical page tree per locale (`app/es/pricing/page.tsx`). For each route with `locales`, the check looks up the localized file and compares its metadata against the default locale (missing page, missing/duplicated canonical, etc.).
-- **Dynamic `[locale]` segment** (next-intl / next-i18next) — one physical page (`app/[locale]/[slug]/page.tsx`) serves every locale through the URL param. The check detects this automatically when a route path contains the locale segment and **does not** expect a per-locale file. Instead it flags a route that exports **static** `metadata`: a module-scope object can't read the `[locale]` param, so title, description and canonical would be identical for every locale and no hreflang is emitted — use `generateMetadata({ params })` to vary them per locale.
-
-The dynamic segment defaults to `[locale]`. If yours is named differently (e.g. `[lang]`), set `localeParam` at the config root:
-
-```ts
-export default defineReleaseLens({
-  localeParam: 'lang',
-  routes: [{ id: 'home', path: '/[lang]', locales: ['en', 'es'] }],
-});
-```
-
-## Payload CMS
-
-When `adapters.payload` points at your `payload.config.ts`, releaselens loads it (heavy editor/db/storage imports are stubbed, so no database or build is needed) and extracts a normalized content model: collections, globals, localization, and **blocks**. Blocks are discovered both from `type: 'blocks'` fields and from the lexical rich-text editor — `lexicalEditor({ features: [BlocksFeature({ blocks: [...] })] })`, including blocks nested inside other blocks. The `payload-block-renderer` check then verifies every block slug has a matching frontend component, catching CMS-model/renderer drift (a renamed or new block whose renderer was never built).
-
 ## GitHub Action
 
 ```yaml
@@ -189,7 +222,7 @@ jobs:
 
 See [`actions/releaselens-check`](./actions/releaselens-check) for inputs and notes.
 
-The examples pin the action to a release tag (`@v0.1.3`). For a hardened supply chain, pin to a full commit SHA instead (`@<sha>`) and let Dependabot bump it — a SHA can't be moved, a tag can. Avoid `@main`: it runs whatever is on the default branch at the time.
+The examples pin the action to a release tag (`@v0.1.3`). For a hardened supply chain, pin to a full commit SHA instead (`@<sha>`) and let Dependabot bump it — a SHA can't be moved, a tag can. Avoid `@main`: it runs whatever is on the default branch at the time. Either way, the tag pins the wrapper, not the analyzer — the action runs `npx --yes releaselens`, which uses your project's installed `releaselens` when present and otherwise fetches the latest published CLI. Add `releaselens` to `devDependencies` to pin the analyzer itself.
 
 ## FP-budget (baseline + dismiss + auto-mute)
 
@@ -230,8 +263,8 @@ Each finding carries `high | medium | low` confidence. Low-confidence criticals 
 
 | Package | Description |
 | --- | --- |
-| [`@releaselens/core`](./packages/core) | Config schema, types, check runner, FP-budget storage, 10 default checks, Payload adapter, AI explainer. |
-| [`releaselens`](./packages/cli) | CLI binary (`init`, `check`, `push`, `dismiss`, `unmute`). |
+| [`@releaselens/core`](./packages/core) | Config schema, types, check runner, FP-budget storage, core contract checks (SEO, locales, Payload CMS, config integrity) plus experimental forms/analytics checks, Payload adapter, AI explainer. |
+| [`releaselens`](./packages/cli) | CLI binary (`init`, `check`, `dismiss`, `unmute`). |
 
 ## Development
 
@@ -249,10 +282,11 @@ pnpm -w typecheck
 - Not an AI code review (Copilot, Cursor, CodeRabbit, Qodo territory).
 - Not a synthetic monitoring cloud (Checkly).
 - Not visual regression (Chromatic, Lost Pixel, Argos).
+- Not a runtime analytics validator (Avo, Trackingplan territory) — the forms/analytics checks here are static, experimental tripwires.
 - Not a CMS or content authoring tool.
 - Not an observability backend (Sentry, PostHog).
 
-A thin orchestrator that runs targeted checks on revenue routes before merge.
+A thin orchestrator that runs targeted contract checks on revenue routes before merge.
 
 ## License
 
