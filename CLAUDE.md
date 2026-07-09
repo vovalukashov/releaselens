@@ -4,9 +4,9 @@ Project guidance for AI assistants working in this repository.
 
 ## What this project is
 
-`releaselens` — a developer-first OSS CLI and config schema that verifies release safety of code-first Next.js marketing sites directly in the repo and CI.
+`releaselens` — a developer-first OSS CLI and config schema that runs pre-merge contract checks on code-first Next.js App Router marketing sites, directly in the repo and CI.
 
-Positioning: **release-safety layer for code-first marketing sites**, not an SEO checker, not a monitoring tool, not a CMS.
+Positioning: **pre-merge contract diff for Next.js App Router marketing sites — before merge, not after deploy**. Core checks are the contract surfaces where static analysis is strong: SEO metadata, locale coverage, Payload CMS block↔renderer wiring, config integrity. Forms and analytics checks are **experimental** tripwires — behavioral surfaces where static analysis has documented limits. Not an SEO checker, not a monitoring tool, not a runtime analytics validator, not a CMS.
 
 ## Language policy
 
@@ -51,10 +51,14 @@ pnpm -w lint
 ```
 .
 ├── packages/
-│   ├── core/           # @releaselens/core — schema, types, runner, default checks
-│   └── cli/            # releaselens       — CLI binary
+│   ├── core/            # @releaselens/core — schema, types, runner, default checks
+│   └── cli/             # releaselens       — CLI binary
+├── actions/
+│   └── releaselens-check/  # composite GitHub Action wrapping the CLI
+├── docs/                # operational docs (dispatch routines)
 └── examples/
-    └── basic/          # smoke fixture for the CLI
+    ├── basic/           # smoke fixture for the CLI
+    └── next-marketing/  # demo app + broken-prs killer-demo patches
 ```
 
 New first-party packages go under `packages/*`. Demo or fixture apps go under `examples/*`. Both globs are listed in `pnpm-workspace.yaml`.
